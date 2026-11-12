@@ -16,12 +16,44 @@ const {
 } = require('./interviewEngine');
 
 const app = express();
+
+// Flexible CORS setup to allow localhost/127.0.0.1 on any port and prevent CORS blocking
+const allowedOrigins = (origin, callback) => {
+    // Allow non-browser requests (e.g. curl, server-to-server, Postman)
+    if (!origin) return callback(null, true);
+
+    // If FRONTEND_URL is explicitly set, check it
+    if (process.env.FRONTEND_URL) {
+        const envOrigins = process.env.FRONTEND_URL.split(',').map(u => u.trim());
+        if (envOrigins.includes(origin) || envOrigins.includes('*')) {
+            return callback(null, true);
+        }
+    }
+
+    // Allow any localhost or 127.0.0.1 on any port (e.g. 5173, 5174, 3000, 4173)
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+        return callback(null, true);
+    }
+
+    // Allow local network IP addresses for LAN testing
+    if (/^https?:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)(:\d+)?$/.test(origin)) {
+        return callback(null, true);
+    }
+
+    // In development mode, allow all origins
+    if (process.env.NODE_ENV !== 'production') {
+        return callback(null, true);
+    }
+
+    return callback(new Error('Blocked by CORS'));
+};
+
 app.use(cors({
-    origin: process.env.FRONTEND_URL
-        ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
-        : 'http://localhost:5173',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id']
+    origin: allowedOrigins,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id', 'X-Requested-With', 'Accept', 'Origin'],
+    credentials: true,
+    optionsSuccessStatus: 200
 }));
 // Support large resume uploads without 413 Payload Too Large error
 app.use(express.json({ limit: '50mb' }));
