@@ -1,21 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
-import { 
-  UploadCloud, 
-  FileText, 
-  Sparkles, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Layers, 
-  Target, 
-  ShieldCheck, 
-  Award, 
-  RefreshCw, 
-  X, 
-  Briefcase, 
-  GraduationCap, 
-  FolderGit2, 
-  Cpu, 
+import api from '../services/api';
+import {
+  UploadCloud,
+  FileText,
+  Sparkles,
+  CheckCircle2,
+  AlertTriangle,
+  Layers,
+  Target,
+  ShieldCheck,
+  Award,
+  RefreshCw,
+  X,
+  Briefcase,
+  GraduationCap,
+  FolderGit2,
+  Cpu,
   HelpCircle,
   FileCheck,
   TrendingUp,
@@ -31,7 +31,7 @@ const AtsResumeAnalysis = ({ defaultTargetRole = '' }) => {
   const [analysis, setAnalysis] = useState(null);
   const [recentAnalyses, setRecentAnalyses] = useState([]);
   const [activeTab, setActiveTab] = useState('all'); // 'all' | 'content' | 'keywords'
-  
+
   const fileInputRef = useRef(null);
 
   // Sync default target role if provided and not yet modified
@@ -48,7 +48,7 @@ const AtsResumeAnalysis = ({ defaultTargetRole = '' }) => {
 
   const fetchLatestAnalyses = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/ats/latest');
+      const res = await api.get('/ats/latest');
       if (res.data?.success && Array.isArray(res.data.analyses)) {
         setRecentAnalyses(res.data.analyses);
       }
@@ -133,8 +133,8 @@ const AtsResumeAnalysis = ({ defaultTargetRole = '' }) => {
 
     try {
       const currentUserId = localStorage.getItem('user_id') || localStorage.getItem('user_email') || 'ashalathaavuru7@gmail.com';
-      const response = await axios.post('http://localhost:5000/api/ats/analyze', formData, {
-        headers: { 
+      const response = await api.post('/ats/analyze', formData, {
+        headers: {
           'Content-Type': 'multipart/form-data',
           'x-user-id': currentUserId
         }
@@ -183,7 +183,7 @@ const AtsResumeAnalysis = ({ defaultTargetRole = '' }) => {
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 md:p-8 space-y-8" id="ats-analysis-card">
-      
+
       {/* 1. Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-6">
         <div>
@@ -210,32 +210,31 @@ const AtsResumeAnalysis = ({ defaultTargetRole = '' }) => {
 
       {/* 2. Upload & Configuration Form */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+
         {/* Upload Drop Zone (Takes 2 columns on lg) */}
         <div className="lg:col-span-2 space-y-4">
           <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
             Upload Resume Document (PDF or DOCX)
           </label>
-          
+
           <div
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
-              isDragging 
-                ? 'border-blue-500 bg-blue-50/50 scale-[0.99]' 
-                : file 
-                  ? 'border-emerald-300 bg-emerald-50/20 hover:border-emerald-400' 
+            className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${isDragging
+                ? 'border-blue-500 bg-blue-50/50 scale-[0.99]'
+                : file
+                  ? 'border-emerald-300 bg-emerald-50/20 hover:border-emerald-400'
                   : 'border-gray-300 hover:border-blue-400 bg-gray-50/50 hover:bg-gray-50'
-            }`}
+              }`}
           >
-            <input 
+            <input
               ref={fileInputRef}
-              type="file" 
-              accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
-              onChange={handleFileChange} 
-              className="hidden" 
+              type="file"
+              accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              onChange={handleFileChange}
+              className="hidden"
             />
 
             {file ? (
@@ -282,11 +281,11 @@ const AtsResumeAnalysis = ({ defaultTargetRole = '' }) => {
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
                 <Target size={14} className="text-blue-600" /> Target Job Role <span className="text-gray-400 font-normal lowercase">(optional)</span>
               </label>
-              <input 
-                type="text" 
-                value={targetRole} 
-                onChange={(e) => setTargetRole(e.target.value)} 
-                placeholder="e.g. Software Developer, Data Analyst" 
+              <input
+                type="text"
+                value={targetRole}
+                onChange={(e) => setTargetRole(e.target.value)}
+                placeholder="e.g. Software Developer, Data Analyst"
                 className="w-full text-xs font-medium p-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               />
               <p className="text-[11px] text-gray-500 mt-1">
@@ -301,11 +300,10 @@ const AtsResumeAnalysis = ({ defaultTargetRole = '' }) => {
                   key={role}
                   type="button"
                   onClick={() => setTargetRole(role)}
-                  className={`text-[11px] px-2 py-0.5 rounded-md border transition-colors ${
-                    targetRole === role 
-                      ? 'bg-blue-600 text-white border-blue-600' 
+                  className={`text-[11px] px-2 py-0.5 rounded-md border transition-colors ${targetRole === role
+                      ? 'bg-blue-600 text-white border-blue-600'
                       : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-100'
-                  }`}
+                    }`}
                 >
                   {role}
                 </button>
@@ -316,11 +314,10 @@ const AtsResumeAnalysis = ({ defaultTargetRole = '' }) => {
           <button
             onClick={handleAnalyze}
             disabled={!file || isLoading}
-            className={`w-full py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-all ${
-              !file || isLoading 
-                ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+            className={`w-full py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-all ${!file || isLoading
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20 hover:scale-[1.01]'
-            }`}
+              }`}
           >
             {isLoading ? (
               <>
@@ -376,8 +373,8 @@ const AtsResumeAnalysis = ({ defaultTargetRole = '' }) => {
           </h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {recentAnalyses.slice(0, 3).map((item) => (
-              <div 
-                key={item.id} 
+              <div
+                key={item.id}
                 onClick={() => handleSelectPrevious(item)}
                 className="p-3.5 bg-gray-50 hover:bg-blue-50/50 rounded-xl border border-gray-200 hover:border-blue-300 cursor-pointer transition-all flex items-center justify-between"
               >
@@ -401,10 +398,10 @@ const AtsResumeAnalysis = ({ defaultTargetRole = '' }) => {
       {/* ============================================================== */}
       {analysis && !isLoading && (
         <div id="ats-results-view" className="space-y-8 pt-4 border-t border-gray-200 animate-fadeIn">
-          
+
           {/* Header Summary & Radial Score */}
           <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 rounded-2xl p-6 md:p-8 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-8">
-            
+
             <div className="space-y-2 text-center md:text-left max-w-xl">
               <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold text-blue-200 border border-white/10">
                 <FileText size={13} /> {analysis.filename || file?.name || 'Resume Analyzed'}
@@ -415,7 +412,7 @@ const AtsResumeAnalysis = ({ defaultTargetRole = '' }) => {
               <p className="text-xs md:text-sm text-slate-300 leading-relaxed">
                 Evaluated against <span className="font-semibold text-blue-300">{analysis.target_role || targetRole || 'General Technical Engineering'}</span> criteria. Based strictly on the text extracted from your uploaded document.
               </p>
-              
+
               <div className="pt-2">
                 <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full border ${getScoreBadge(analysis.overall_score || 0).color}`}>
                   {getScoreBadge(analysis.overall_score || 0).label}
@@ -426,7 +423,7 @@ const AtsResumeAnalysis = ({ defaultTargetRole = '' }) => {
             {/* Circular / Radial Score Indicator */}
             <div className="relative flex flex-col items-center justify-center shrink-0">
               <div className="w-36 h-36 rounded-full border-8 border-slate-700/60 flex flex-col items-center justify-center bg-slate-950/80 shadow-2xl relative overflow-hidden">
-                <div 
+                <div
                   className="absolute inset-0 rounded-full border-8 border-transparent transition-all duration-1000"
                   style={{
                     borderColor: analysis.overall_score >= 80 ? '#10b981' : analysis.overall_score >= 65 ? '#3b82f6' : '#f59e0b',
@@ -450,9 +447,9 @@ const AtsResumeAnalysis = ({ defaultTargetRole = '' }) => {
             <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
               <Layers size={16} className="text-blue-600" /> ATS Score Breakdown (Calculated out of 100)
             </h4>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              
+
               {/* Keyword Relevance */}
               <div className="p-4 rounded-xl border border-gray-200 bg-gray-50/60 space-y-2">
                 <div className="flex justify-between items-center text-xs">
@@ -530,7 +527,7 @@ const AtsResumeAnalysis = ({ defaultTargetRole = '' }) => {
 
           {/* Sections 2 & 3: Strengths vs Improvements Side-by-Side */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
+
             {/* 2. Strengths */}
             <div className="bg-emerald-50/40 border border-emerald-200/80 rounded-2xl p-5 space-y-3">
               <h4 className="text-sm font-bold text-emerald-900 flex items-center gap-2">
@@ -573,8 +570,8 @@ const AtsResumeAnalysis = ({ defaultTargetRole = '' }) => {
             </p>
             <div className="flex flex-wrap gap-2 pt-1">
               {(analysis.missing_keywords || []).map((kw, idx) => (
-                <span 
-                  key={idx} 
+                <span
+                  key={idx}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 text-xs font-semibold border border-rose-200"
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
@@ -604,9 +601,9 @@ const AtsResumeAnalysis = ({ defaultTargetRole = '' }) => {
             <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
               <TrendingUp size={18} className="text-blue-600" /> Section-by-Section Content Suggestions
             </h4>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              
+
               {/* Summary */}
               {analysis.content_suggestions?.summary && (
                 <div className="p-4 rounded-xl border border-gray-200 bg-white space-y-1.5">

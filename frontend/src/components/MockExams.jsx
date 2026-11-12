@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
-import { 
-  PlayCircle, CheckCircle, CheckCircle2, XCircle, Clock, Award, 
-  ArrowRight, ArrowLeft, RefreshCw, BookOpen, Code, Brain, 
-  ChevronRight, BarChart2, Filter, Search, AlertCircle, Bookmark, 
-  Check, ShieldCheck, Terminal, Play, Eye, Sparkles, TrendingUp, 
+import api from '../services/api';
+import {
+  PlayCircle, CheckCircle, CheckCircle2, XCircle, Clock, Award,
+  ArrowRight, ArrowLeft, RefreshCw, BookOpen, Code, Brain,
+  ChevronRight, BarChart2, Filter, Search, AlertCircle, Bookmark,
+  Check, ShieldCheck, Terminal, Play, Eye, Sparkles, TrendingUp,
   AlertTriangle, Layers, Building2, HelpCircle, CheckSquare, X,
   RotateCcw, Target, Copy, Trash2, ChevronDown, ChevronUp, FileCode,
   MessageSquare
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const API_BASE = 'http://localhost:5000/api/assessments';
+const API_BASE = `/assessments`;
 
 const MockExams = () => {
   // Navigation & View States
@@ -147,7 +147,7 @@ const MockExams = () => {
   const clearSessionStorage = () => {
     try {
       localStorage.removeItem('active_assessment_session');
-    } catch (e) {}
+    } catch (e) { }
   };
 
   // Check if question deadline has fully elapsed
@@ -219,7 +219,7 @@ const MockExams = () => {
         userCodes: session.userCodes || null,
         submittedCode: session.codingCode || null
       };
-      const res = await axios.post(`${API_BASE}/tests/${session.testId}/submit`, payload);
+      const res = await api.post(`${API_BASE}/tests/${session.testId}/submit`, payload);
       setTestResult(res.data);
       setViewMode('results');
       fetchHistory();
@@ -304,7 +304,7 @@ const MockExams = () => {
   const fetchMetadata = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_BASE}/meta`);
+      const res = await api.get(`${API_BASE}/meta`);
       setMetadata(res.data);
     } catch (err) {
       console.error('Error fetching assessment metadata:', err);
@@ -318,7 +318,7 @@ const MockExams = () => {
   const fetchHistory = async () => {
     setHistoryLoading(true);
     try {
-      const res = await axios.get(`${API_BASE}/history`);
+      const res = await api.get(`${API_BASE}/history`);
       setHistoryData(res.data);
     } catch (err) {
       console.error('Error fetching assessment history:', err);
@@ -332,7 +332,7 @@ const MockExams = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get(`${API_BASE}/tests/${testId}`);
+      const res = await api.get(`${API_BASE}/tests/${testId}`);
       const test = res.data;
 
       const minRequired = test.test_type === 'coding' ? 5 : 20;
@@ -456,7 +456,7 @@ const MockExams = () => {
     try {
       const params = { company: company.slug };
       if (categorySlug && categorySlug !== 'all') params.category = categorySlug;
-      const res = await axios.get(`${API_BASE}/tests`, { params });
+      const res = await api.get(`${API_BASE}/tests`, { params });
       setCompanyTests(res.data);
     } catch (err) {
       console.error('Error fetching company tests:', err);
@@ -568,11 +568,11 @@ const MockExams = () => {
     if (!activeTest || !activeTest.questions[currentQuestionIndex]) return;
     const currentQ = activeTest.questions[currentQuestionIndex];
     const codeToRun = userCodes[currentQ.id]?.[codingLanguage] || currentQ.starter_code?.[codingLanguage] || '';
-    
+
     setIsEvaluatingCode(true);
     setCodeEvalResult(null);
     try {
-      const res = await axios.post(`${API_BASE}/coding/evaluate`, {
+      const res = await api.post(`${API_BASE}/coding/evaluate`, {
         questionId: currentQ.id,
         code: codeToRun,
         language: codingLanguage,
@@ -672,7 +672,7 @@ const MockExams = () => {
       const submitHeaders = { 'x-user-id': currentUserId };
 
       try {
-        const res = await axios.post(`${API_BASE}/tests/${test.id}/submit`, { ...payload, userId: currentUserId }, { headers: submitHeaders });
+        const res = await api.post(`${API_BASE}/tests/${test.id}/submit`, { ...payload, userId: currentUserId }, { headers: submitHeaders });
         setTestResult(res.data);
         setViewMode('results');
         fetchHistory(); // Refresh history with new attempt
@@ -680,11 +680,11 @@ const MockExams = () => {
       } catch (postErr) {
         // If 404, auto-recover by resolving current test ID
         if (postErr.response?.status === 404 && test.company_slug) {
-          const freshRes = await axios.get(`${API_BASE}/tests?company=${test.company_slug}`);
+          const freshRes = await api.get(`${API_BASE}/tests?company=${test.company_slug}`);
           const matching = freshRes.data?.find(t => t.category_slug === test.category_slug || t.title === test.title);
           if (matching && matching.id !== test.id) {
             console.log(`Auto-recovered submission using test ID ${matching.id}`);
-            const retryRes = await axios.post(`${API_BASE}/tests/${matching.id}/submit`, { ...payload, userId: currentUserId }, { headers: submitHeaders });
+            const retryRes = await api.post(`${API_BASE}/tests/${matching.id}/submit`, { ...payload, userId: currentUserId }, { headers: submitHeaders });
             setTestResult(retryRes.data);
             setViewMode('results');
             fetchHistory();
@@ -712,8 +712,8 @@ const MockExams = () => {
   // Filtered topics for Aptitude
   const filteredTopics = metadata.topics.filter(t => {
     const matchesSubject = selectedAptitudeSubject === 'all' || t.subject_slug === selectedAptitudeSubject;
-    const matchesSearch = t.name.toLowerCase().includes(aptitudeSearch.toLowerCase()) || 
-                          (t.description && t.description.toLowerCase().includes(aptitudeSearch.toLowerCase()));
+    const matchesSearch = t.name.toLowerCase().includes(aptitudeSearch.toLowerCase()) ||
+      (t.description && t.description.toLowerCase().includes(aptitudeSearch.toLowerCase()));
     return matchesSubject && matchesSearch && t.category_slug === 'aptitude';
   });
 
@@ -722,14 +722,14 @@ const MockExams = () => {
     const domain = c.domain || 'computer';
     const matchesDomain = selectedDomain === 'all' || domain === selectedDomain;
     const matchesSearch = c.name.toLowerCase().includes(companySearch.toLowerCase()) ||
-                          c.tier.toLowerCase().includes(companySearch.toLowerCase()) ||
-                          (c.pattern_notes && c.pattern_notes.toLowerCase().includes(companySearch.toLowerCase()));
+      c.tier.toLowerCase().includes(companySearch.toLowerCase()) ||
+      (c.pattern_notes && c.pattern_notes.toLowerCase().includes(companySearch.toLowerCase()));
     return matchesDomain && matchesSearch;
   });
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-64px)] bg-slate-50 text-slate-800">
-      
+
       {/* Assessment Error Banner */}
       {error && (
         <div className="max-w-7xl mx-auto px-6 pt-6 w-full">
@@ -791,11 +791,10 @@ const MockExams = () => {
             <div className="flex border-b border-slate-200 gap-8">
               <button
                 onClick={() => setActiveTab('companies')}
-                className={`flex items-center gap-2 pb-3 font-semibold text-sm border-b-2 transition-colors ${
-                  activeTab === 'companies'
+                className={`flex items-center gap-2 pb-3 font-semibold text-sm border-b-2 transition-colors ${activeTab === 'companies'
                     ? 'border-blue-600 text-blue-600'
                     : 'border-transparent text-slate-500 hover:text-slate-800'
-                }`}
+                  }`}
               >
                 <Building2 size={18} />
                 <span>Company-Specific Assessments</span>
@@ -804,11 +803,10 @@ const MockExams = () => {
 
               <button
                 onClick={() => setActiveTab('aptitude')}
-                className={`flex items-center gap-2 pb-3 font-semibold text-sm border-b-2 transition-colors ${
-                  activeTab === 'aptitude'
+                className={`flex items-center gap-2 pb-3 font-semibold text-sm border-b-2 transition-colors ${activeTab === 'aptitude'
                     ? 'border-blue-600 text-blue-600'
                     : 'border-transparent text-slate-500 hover:text-slate-800'
-                }`}
+                  }`}
               >
                 <Target size={18} />
                 <span>Aptitude Preparation</span>
@@ -817,11 +815,10 @@ const MockExams = () => {
 
               <button
                 onClick={() => { setActiveTab('history'); fetchHistory(); }}
-                className={`flex items-center gap-2 pb-3 font-semibold text-sm border-b-2 transition-colors ${
-                  activeTab === 'history'
+                className={`flex items-center gap-2 pb-3 font-semibold text-sm border-b-2 transition-colors ${activeTab === 'history'
                     ? 'border-blue-600 text-blue-600'
                     : 'border-transparent text-slate-500 hover:text-slate-800'
-                }`}
+                  }`}
               >
                 <BarChart2 size={18} />
                 <span>Performance History & Analytics</span>
@@ -870,17 +867,15 @@ const MockExams = () => {
                       <button
                         key={dom.id}
                         onClick={() => setSelectedDomain(dom.id)}
-                        className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                          isSelected
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${isSelected
                             ? 'bg-blue-600 text-white shadow-xs'
                             : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                        }`}
+                          }`}
                       >
                         <span>{dom.icon}</span>
                         <span>{dom.label}</span>
-                        <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                          isSelected ? 'bg-blue-700 text-blue-100' : 'bg-slate-200 text-slate-600'
-                        }`}>
+                        <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${isSelected ? 'bg-blue-700 text-blue-100' : 'bg-slate-200 text-slate-600'
+                          }`}>
                           {count}
                         </span>
                       </button>
@@ -910,11 +905,10 @@ const MockExams = () => {
                 <div className="flex flex-wrap gap-1.5">
                   <button
                     onClick={() => setSelectedRole('all')}
-                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
-                      selectedRole === 'all'
+                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${selectedRole === 'all'
                         ? 'bg-slate-900 text-white shadow-xs'
                         : 'bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100'
-                    }`}
+                      }`}
                   >
                     All Roles
                   </button>
@@ -922,11 +916,10 @@ const MockExams = () => {
                     <button
                       key={r.slug}
                       onClick={() => setSelectedRole(r.slug)}
-                      className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
-                        selectedRole === r.slug
+                      className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${selectedRole === r.slug
                           ? 'bg-blue-600 text-white shadow-xs'
                           : 'bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100'
-                      }`}
+                        }`}
                     >
                       {r.title}
                     </button>
@@ -939,7 +932,7 @@ const MockExams = () => {
           {/* Company Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCompanies.map(company => (
-              <div 
+              <div
                 key={company.slug}
                 className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs hover:shadow-md transition-shadow flex flex-col justify-between"
               >
@@ -956,15 +949,14 @@ const MockExams = () => {
                             {company.tier}
                           </span>
                           {company.domain && company.domain !== 'computer' && (
-                            <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-md border uppercase tracking-wider ${
-                              company.domain === 'electronics'
+                            <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-md border uppercase tracking-wider ${company.domain === 'electronics'
                                 ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
                                 : company.domain === 'electrical'
                                   ? 'bg-amber-50 text-amber-700 border-amber-200'
                                   : company.domain === 'civil'
                                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                     : 'bg-rose-50 text-rose-700 border-rose-200'
-                            }`}>
+                              }`}>
                               {company.domain === 'electronics' ? '🔌 ECE' : company.domain === 'electrical' ? '⚡ EEE' : company.domain === 'civil' ? '🏗️ Civil' : '⚙️ Mech'}
                             </span>
                           )}
@@ -1122,51 +1114,46 @@ const MockExams = () => {
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setSelectedAptitudeSubject('all')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  selectedAptitudeSubject === 'all'
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${selectedAptitudeSubject === 'all'
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
+                  }`}
               >
                 All Subjects
               </button>
               <button
                 onClick={() => setSelectedAptitudeSubject('quantitative')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  selectedAptitudeSubject === 'quantitative'
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${selectedAptitudeSubject === 'quantitative'
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
+                  }`}
               >
                 Quantitative Aptitude
               </button>
               <button
                 onClick={() => setSelectedAptitudeSubject('logical')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  selectedAptitudeSubject === 'logical'
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${selectedAptitudeSubject === 'logical'
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
+                  }`}
               >
                 Logical Reasoning
               </button>
               <button
                 onClick={() => setSelectedAptitudeSubject('verbal')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  selectedAptitudeSubject === 'verbal'
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${selectedAptitudeSubject === 'verbal'
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
+                  }`}
               >
                 Verbal Ability
               </button>
               <button
                 onClick={() => setSelectedAptitudeSubject('data-interpretation')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  selectedAptitudeSubject === 'data-interpretation'
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${selectedAptitudeSubject === 'data-interpretation'
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
+                  }`}
               >
                 Data Interpretation
               </button>
@@ -1222,7 +1209,7 @@ const MockExams = () => {
                         {/* If topic has tests, let's offer Test 1 (and Test 2 if available) */}
                         <button
                           onClick={async () => {
-                            const res = await axios.get(`${API_BASE}/tests?topic=${topic.slug}`);
+                            const res = await api.get(`${API_BASE}/tests?topic=${topic.slug}`);
                             if (res.data && res.data.length > 0) {
                               startTestById(res.data[0].id);
                             }
@@ -1236,7 +1223,7 @@ const MockExams = () => {
                         {topic.test_count > 1 && (
                           <button
                             onClick={async () => {
-                              const res = await axios.get(`${API_BASE}/tests?topic=${topic.slug}`);
+                              const res = await api.get(`${API_BASE}/tests?topic=${topic.slug}`);
                               if (res.data && res.data.length > 1) {
                                 startTestById(res.data[1].id);
                               }
@@ -1335,16 +1322,15 @@ const MockExams = () => {
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-bold text-slate-800 text-sm">{friendlyTopic}</span>
                         <div className="flex items-center gap-2">
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${
-                            isStrong ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                          }`}>
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${isStrong ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                            }`}>
                             {isStrong ? 'Strong' : 'Needs Practice'}
                           </span>
                           <span className="text-sm font-extrabold text-slate-900">{tp.avg_score}%</span>
                         </div>
                       </div>
                       <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden mb-2">
-                        <div 
+                        <div
                           className={`h-full rounded-full transition-all ${isStrong ? 'bg-emerald-500' : 'bg-amber-500'}`}
                           style={{ width: `${Math.min(100, Math.max(5, tp.avg_score))}%` }}
                         ></div>
@@ -1367,7 +1353,7 @@ const MockExams = () => {
                 <h3 className="text-lg font-bold text-slate-900">Recent Test Attempts</h3>
                 <p className="text-xs text-slate-500">Historical performance records saved in the backend</p>
               </div>
-              <button 
+              <button
                 onClick={fetchHistory}
                 className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors"
               >
@@ -1406,9 +1392,8 @@ const MockExams = () => {
                             {att.score} / {att.total_questions}
                           </td>
                           <td className="py-4 px-4">
-                            <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full ${
-                              isPassing ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                            }`}>
+                            <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full ${isPassing ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                              }`}>
                               {isPassing ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
                               {att.percentage}%
                             </span>
@@ -1462,7 +1447,7 @@ const MockExams = () => {
                   {selectedCompanyModal.company.name} Assessments
                 </h2>
               </div>
-              <button 
+              <button
                 onClick={() => setSelectedCompanyModal(null)}
                 className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
               >
@@ -1497,11 +1482,10 @@ const MockExams = () => {
                         setCompanyModalCategory(cat.id);
                         setCompanyModalDifficulty('all');
                       }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                        isActive
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${isActive
                           ? 'bg-blue-600 text-white shadow-xs'
                           : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      }`}
+                        }`}
                     >
                       <IconComponent size={13} />
                       <span>{cat.label}</span>
@@ -1534,11 +1518,10 @@ const MockExams = () => {
                     <button
                       key={diff.id}
                       onClick={() => setCompanyModalDifficulty(diff.id)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                        companyModalDifficulty === diff.id
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${companyModalDifficulty === diff.id
                           ? (diff.id === 'Hard' ? 'bg-rose-600 text-white shadow-xs' : diff.id === 'Medium' ? 'bg-amber-600 text-white shadow-xs' : diff.id === 'Easy' ? 'bg-emerald-600 text-white shadow-xs' : 'bg-slate-900 text-white shadow-xs')
                           : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
-                      }`}
+                        }`}
                     >
                       {diff.label}
                     </button>
@@ -1577,39 +1560,36 @@ const MockExams = () => {
                   >
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-xs uppercase font-extrabold px-2 py-0.5 rounded-md ${
-                          t.test_type === 'coding' 
-                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
-                            : (t.category_slug === 'verbal' 
-                                ? 'bg-amber-100 text-amber-800 border border-amber-200' 
-                                : 'bg-blue-100 text-blue-800')
-                        }`}>
+                        <span className={`text-xs uppercase font-extrabold px-2 py-0.5 rounded-md ${t.test_type === 'coding'
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                            : (t.category_slug === 'verbal'
+                              ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                              : 'bg-blue-100 text-blue-800')
+                          }`}>
                           {t.test_type === 'coding' ? 'REAL CODING' : (t.category_slug === 'verbal' ? 'VERBAL ABILITY' : t.category_slug?.replace(/_/g, ' '))}
                         </span>
                         <span className="text-xs font-semibold text-slate-500">
                           {t.duration_minutes} Mins • {t.question_count || t.total_questions} Questions
                         </span>
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-md border ${
-                          t.difficulty === 'Hard' ? 'bg-rose-50 text-rose-700 border-rose-200' : t.difficulty === 'Easy' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
-                        }`}>
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-md border ${t.difficulty === 'Hard' ? 'bg-rose-50 text-rose-700 border-rose-200' : t.difficulty === 'Easy' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+                          }`}>
                           {t.difficulty}
                         </span>
                       </div>
                       <h4 className="font-bold text-slate-900 text-base">{t.title}</h4>
                       <p className="text-xs text-slate-500 mt-0.5">
-                        {t.test_type === 'coding' 
-                          ? 'Live code editor challenge with multi-language testing (Python, Java, C, C++).' 
+                        {t.test_type === 'coding'
+                          ? 'Live code editor challenge with multi-language testing (Python, Java, C, C++).'
                           : (t.category_slug === 'verbal'
-                              ? 'Grammar rules, sentence correction, reading comprehension, and professional vocabulary (20 Questions).'
-                              : 'Multiple choice questions modeled on recent placement tests (20 Questions).')}
+                            ? 'Grammar rules, sentence correction, reading comprehension, and professional vocabulary (20 Questions).'
+                            : 'Multiple choice questions modeled on recent placement tests (20 Questions).')}
                       </p>
                     </div>
 
                     <button
                       onClick={() => startTestById(t.id)}
-                      className={`shrink-0 px-4 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-xs ${
-                        t.test_type === 'coding' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'
-                      }`}
+                      className={`shrink-0 px-4 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-xs ${t.test_type === 'coding' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'
+                        }`}
                     >
                       <PlayCircle size={16} />
                       <span>{t.test_type === 'coding' ? 'Start Coding Test' : 'Start Assessment'}</span>
@@ -1653,21 +1633,19 @@ const MockExams = () => {
 
             <div className="flex flex-wrap items-center gap-3">
               {/* Question Countdown Timer (60s) */}
-              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-mono font-bold text-xs sm:text-sm ${
-                questionTimeRemaining <= 10 
-                  ? 'bg-rose-50 border-rose-300 text-rose-700 animate-pulse' 
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-mono font-bold text-xs sm:text-sm ${questionTimeRemaining <= 10
+                  ? 'bg-rose-50 border-rose-300 text-rose-700 animate-pulse'
                   : 'bg-blue-50 border-blue-200 text-blue-900'
-              }`}>
+                }`}>
                 <Clock size={16} className={questionTimeRemaining <= 10 ? 'text-rose-600' : 'text-blue-600'} />
                 <span>Time Left: {formatTime(questionTimeRemaining)}</span>
               </div>
 
               {/* Overall Exam Hard Countdown Timer */}
-              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-mono font-bold text-xs sm:text-sm ${
-                overallTimeRemaining < 180 
-                  ? 'bg-rose-50 border-rose-300 text-rose-700 animate-pulse' 
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-mono font-bold text-xs sm:text-sm ${overallTimeRemaining < 180
+                  ? 'bg-rose-50 border-rose-300 text-rose-700 animate-pulse'
                   : 'bg-slate-50 border-slate-200 text-slate-800'
-              }`}>
+                }`}>
                 <Clock size={16} className={overallTimeRemaining < 180 ? 'text-rose-600' : 'text-slate-600'} />
                 <span>Overall: {formatTime(overallTimeRemaining)}</span>
               </div>
@@ -1684,7 +1662,7 @@ const MockExams = () => {
 
           {/* Test Runner Body: Split into Question Area & Question Palette */}
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 flex-1 items-start">
-            
+
             {/* Left 3 Columns: Active Question Area */}
             <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-200 p-6 md:p-8 shadow-xs flex flex-col justify-between min-h-[480px]">
               {(() => {
@@ -1714,11 +1692,10 @@ const MockExams = () => {
 
                       <button
                         onClick={() => handleToggleReview(q.id)}
-                        className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors ${
-                          isMarked
+                        className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors ${isMarked
                             ? 'bg-purple-50 text-purple-700 border-purple-200'
                             : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                        }`}
+                          }`}
                       >
                         <Bookmark size={14} className={isMarked ? 'fill-purple-600 text-purple-600' : ''} />
                         <span>{isMarked ? 'Marked for Review' : 'Mark for Review'}</span>
@@ -1757,19 +1734,16 @@ const MockExams = () => {
                           <div
                             key={opt.id}
                             onClick={() => !isCurrentQuestionExpired && handleSelectOption(q.id, opt.option_index)}
-                            className={`p-4 rounded-xl border text-sm font-medium transition-all flex items-start gap-3.5 ${
-                              isCurrentQuestionExpired ? 'cursor-not-allowed opacity-85' : 'cursor-pointer'
-                            } ${
-                              active
+                            className={`p-4 rounded-xl border text-sm font-medium transition-all flex items-start gap-3.5 ${isCurrentQuestionExpired ? 'cursor-not-allowed opacity-85' : 'cursor-pointer'
+                              } ${active
                                 ? 'bg-blue-50/70 border-blue-600 text-blue-900 shadow-xs'
                                 : 'bg-slate-50/40 hover:bg-slate-50 border-slate-200 text-slate-800'
-                            }`}
+                              }`}
                           >
-                            <span className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${
-                              active
+                            <span className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold shrink-0 transition-colors ${active
                                 ? 'bg-blue-600 text-white'
                                 : 'bg-slate-200 text-slate-600'
-                            }`}>
+                              }`}>
                               {letter}
                             </span>
                             <span className="leading-snug pt-0.5">{opt.option_text}</span>
@@ -1829,7 +1803,7 @@ const MockExams = () => {
             {/* Right Column: Question Palette (1 to 20) */}
             <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
               <h4 className="font-bold text-slate-900 text-sm mb-3">Question Palette</h4>
-              
+
               {/* Status Legend */}
               <div className="grid grid-cols-2 gap-2 text-[11px] font-semibold text-slate-600 mb-4 pb-4 border-b border-slate-100">
                 <div className="flex items-center gap-1.5">
@@ -1870,9 +1844,8 @@ const MockExams = () => {
                     <button
                       key={q.id}
                       onClick={() => navigateToQuestion(idx)}
-                      className={`h-9 rounded-xl font-bold text-xs flex items-center justify-center transition-all ${colorClass} ${
-                        isCurrent ? 'ring-2 ring-blue-600 ring-offset-2' : ''
-                      }`}
+                      className={`h-9 rounded-xl font-bold text-xs flex items-center justify-center transition-all ${colorClass} ${isCurrent ? 'ring-2 ring-blue-600 ring-offset-2' : ''
+                        }`}
                     >
                       {idx + 1}
                     </button>
@@ -1948,9 +1921,8 @@ const MockExams = () => {
                 </div>
                 <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
                   <span>{curQ.code_snippet || curQ.title || `Problem ${currentQuestionIndex + 1}`}</span>
-                  <span className={`text-xs font-extrabold px-2 py-0.5 rounded-md border ${
-                    curQ.difficulty === 'Hard' ? 'bg-rose-50 text-rose-700 border-rose-200' : curQ.difficulty === 'Easy' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
-                  }`}>
+                  <span className={`text-xs font-extrabold px-2 py-0.5 rounded-md border ${curQ.difficulty === 'Hard' ? 'bg-rose-50 text-rose-700 border-rose-200' : curQ.difficulty === 'Easy' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+                    }`}>
                     {curQ.difficulty}
                   </span>
                 </h2>
@@ -2077,16 +2049,14 @@ const MockExams = () => {
                           key={lang.id}
                           type="button"
                           onClick={() => setCodingLanguage(lang.id)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                            codingLanguage === lang.id
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${codingLanguage === lang.id
                               ? 'bg-blue-600 text-white shadow-xs'
                               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-                          }`}
+                            }`}
                         >
                           <span>{lang.label}</span>
-                          <span className={`text-[10px] px-1 py-0.2 rounded font-mono ${
-                            codingLanguage === lang.id ? 'bg-blue-700 text-blue-100' : 'bg-slate-800 text-slate-500'
-                          }`}>
+                          <span className={`text-[10px] px-1 py-0.2 rounded font-mono ${codingLanguage === lang.id ? 'bg-blue-700 text-blue-100' : 'bg-slate-800 text-slate-500'
+                            }`}>
                             {lang.ver}
                           </span>
                         </button>
@@ -2136,7 +2106,7 @@ const MockExams = () => {
                   {/* Code Editor Body with Line Numbers Gutter */}
                   <div className="flex flex-1 min-h-[360px] max-h-[460px] bg-slate-950 overflow-hidden relative">
                     {/* Line numbers gutter */}
-                    <div 
+                    <div
                       id="editor-line-numbers"
                       className="w-11 py-3 bg-slate-900/70 border-r border-slate-800/80 text-right pr-2.5 font-mono text-xs text-slate-500 select-none overflow-hidden leading-relaxed shrink-0"
                     >
@@ -2180,11 +2150,10 @@ const MockExams = () => {
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-xs uppercase tracking-wider text-slate-600">Test Case Execution</span>
                       {evalResult && (
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${
-                          evalResult.allPassed 
-                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${evalResult.allPassed
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                             : 'bg-rose-50 text-rose-800 border-rose-200'
-                        }`}>
+                          }`}>
                           {evalResult.status}
                         </span>
                       )}
@@ -2211,11 +2180,10 @@ const MockExams = () => {
                             setActiveEvalTab(idx);
                             setCustomInputTabActive(false);
                           }}
-                          className={`text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all ${
-                            !customInputTabActive && activeEvalTab === idx
+                          className={`text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all ${!customInputTabActive && activeEvalTab === idx
                               ? 'bg-slate-900 text-white shadow-xs'
                               : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                          }`}
+                            }`}
                         >
                           {r.passed ? (
                             <CheckCircle2 size={13} className="text-emerald-400" />
@@ -2230,9 +2198,8 @@ const MockExams = () => {
                         <button
                           type="button"
                           onClick={() => setCustomInputTabActive(false)}
-                          className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all ${
-                            !customInputTabActive ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'
-                          }`}
+                          className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all ${!customInputTabActive ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'
+                            }`}
                         >
                           Sample Case 1
                         </button>
@@ -2249,11 +2216,10 @@ const MockExams = () => {
                     <button
                       type="button"
                       onClick={() => setCustomInputTabActive(true)}
-                      className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all ml-auto ${
-                        customInputTabActive
+                      className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all ml-auto ${customInputTabActive
                           ? 'bg-blue-600 text-white shadow-xs'
                           : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      }`}
+                        }`}
                     >
                       Custom Input
                     </button>
@@ -2310,9 +2276,8 @@ const MockExams = () => {
                             </span>
                           )}
                         </div>
-                        <div className={`whitespace-pre-wrap ${
-                          evalResult.results[activeEvalTab].passed ? 'text-emerald-400' : 'text-rose-400'
-                        }`}>
+                        <div className={`whitespace-pre-wrap ${evalResult.results[activeEvalTab].passed ? 'text-emerald-400' : 'text-rose-400'
+                          }`}>
                           {evalResult.results[activeEvalTab].actual || (evalResult.results[activeEvalTab].error ? 'Execution encountered errors' : 'No stdout returned')}
                         </div>
                       </div>
@@ -2350,9 +2315,8 @@ const MockExams = () => {
                       key={q.id}
                       type="button"
                       onClick={() => navigateToQuestion(idx)}
-                      className={`h-9 px-3 rounded-xl text-xs font-bold transition-all flex items-center gap-1 ${btnStyle} ${
-                        isCur ? 'ring-2 ring-blue-600 ring-offset-2' : ''
-                      }`}
+                      className={`h-9 px-3 rounded-xl text-xs font-bold transition-all flex items-center gap-1 ${btnStyle} ${isCur ? 'ring-2 ring-blue-600 ring-offset-2' : ''
+                        }`}
                     >
                       {isPassed ? <Check size={12} /> : null}
                       <span>{idx + 1}</span>
@@ -2474,11 +2438,10 @@ const MockExams = () => {
             {/* Result Score Banner */}
             <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm mb-8 text-center">
               <Award size={56} className="text-yellow-500 mx-auto mb-3" />
-              <span className={`text-xs uppercase font-extrabold tracking-wider px-3 py-1 rounded-full border ${
-                isCodingResult 
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-100' 
+              <span className={`text-xs uppercase font-extrabold tracking-wider px-3 py-1 rounded-full border ${isCodingResult
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
                   : 'bg-blue-50 text-blue-700 border-blue-100'
-              }`}>
+                }`}>
                 {isCodingResult ? 'Hands-On Coding Assessment Completed' : 'Assessment Completed'}
               </span>
               <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 mt-2 mb-1">
@@ -2579,11 +2542,10 @@ const MockExams = () => {
 
               {/* Quick Diagnostic Badges */}
               <div className="flex flex-wrap items-center justify-center gap-3 max-w-xl mx-auto mb-8">
-                <span className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 ${
-                  testResult.percentage >= 60 
-                    ? 'bg-emerald-100 text-emerald-800' 
+                <span className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 ${testResult.percentage >= 60
+                    ? 'bg-emerald-100 text-emerald-800'
                     : 'bg-amber-100 text-amber-800'
-                }`}>
+                  }`}>
                   {testResult.percentage >= 60 ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
                   {testResult.percentage >= 75 ? 'Placement Ready (Distinction)' : (testResult.percentage >= 60 ? 'Passing Score (Proficient)' : 'Needs Revision (< 60%)')}
                 </span>
@@ -2666,25 +2628,22 @@ const MockExams = () => {
                   <div className="flex gap-1.5 bg-slate-100 p-1 rounded-xl">
                     <button
                       onClick={() => setSolutionFilter('all')}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                        solutionFilter === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
-                      }`}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${solutionFilter === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
+                        }`}
                     >
                       All ({testResult.detailed_results?.length || 0})
                     </button>
                     <button
                       onClick={() => setSolutionFilter('incorrect')}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                        solutionFilter === 'incorrect' ? 'bg-white text-rose-700 shadow-xs' : 'text-slate-600'
-                      }`}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${solutionFilter === 'incorrect' ? 'bg-white text-rose-700 shadow-xs' : 'text-slate-600'
+                        }`}
                     >
                       Needs Work ({testResult.detailed_results?.filter(d => d.status !== 'Accepted').length || 0})
                     </button>
                     <button
                       onClick={() => setSolutionFilter('correct')}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                        solutionFilter === 'correct' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600'
-                      }`}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${solutionFilter === 'correct' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600'
+                        }`}
                     >
                       Accepted ({testResult.detailed_results?.filter(d => d.status === 'Accepted').length || 0})
                     </button>
@@ -2705,29 +2664,26 @@ const MockExams = () => {
                       const isExpanded = expandedResultProblem === res.question_id || (expandedResultProblem === null && index === 0);
 
                       return (
-                        <div 
+                        <div
                           key={res.question_id || index}
-                          className={`p-6 rounded-2xl border transition-all ${
-                            isAccepted 
-                              ? 'border-emerald-200 bg-emerald-50/20' 
-                              : isPartial 
+                          className={`p-6 rounded-2xl border transition-all ${isAccepted
+                              ? 'border-emerald-200 bg-emerald-50/20'
+                              : isPartial
                                 ? 'border-amber-200 bg-amber-50/20'
                                 : 'border-rose-200 bg-rose-50/20'
-                          }`}
+                            }`}
                         >
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className={`w-7 h-7 rounded-lg text-xs font-extrabold flex items-center justify-center text-white ${
-                                isAccepted ? 'bg-emerald-600' : isPartial ? 'bg-amber-600' : 'bg-rose-600'
-                              }`}>
+                              <span className={`w-7 h-7 rounded-lg text-xs font-extrabold flex items-center justify-center text-white ${isAccepted ? 'bg-emerald-600' : isPartial ? 'bg-amber-600' : 'bg-rose-600'
+                                }`}>
                                 {index + 1}
                               </span>
                               <span className="font-bold text-slate-900 text-sm md:text-base">
                                 {res.title || `Problem ${index + 1}`}
                               </span>
-                              <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${
-                                res.difficulty === 'Hard' ? 'bg-rose-50 text-rose-700 border-rose-200' : res.difficulty === 'Easy' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
-                              }`}>
+                              <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${res.difficulty === 'Hard' ? 'bg-rose-50 text-rose-700 border-rose-200' : res.difficulty === 'Easy' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+                                }`}>
                                 {res.difficulty}
                               </span>
                               <span className="text-xs uppercase font-extrabold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
@@ -2736,13 +2692,12 @@ const MockExams = () => {
                             </div>
 
                             <div className="flex items-center gap-3">
-                              <span className={`text-xs font-bold px-2.5 py-1 rounded-xl flex items-center gap-1.5 ${
-                                isAccepted 
-                                  ? 'bg-emerald-100 text-emerald-800' 
-                                  : isPartial 
+                              <span className={`text-xs font-bold px-2.5 py-1 rounded-xl flex items-center gap-1.5 ${isAccepted
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : isPartial
                                     ? 'bg-amber-100 text-amber-800'
                                     : 'bg-rose-100 text-rose-800'
-                              }`}>
+                                }`}>
                                 {isAccepted ? <CheckCircle2 size={14} /> : isPartial ? <AlertTriangle size={14} /> : <XCircle size={14} />}
                                 <span>{res.status}</span>
                                 <span className="font-mono text-[11px]">({res.passed_test_cases}/{res.total_test_cases} passed)</span>
@@ -2803,11 +2758,10 @@ const MockExams = () => {
                                     {res.test_results.map((tc, tcIdx) => (
                                       <div
                                         key={tcIdx}
-                                        className={`p-3 rounded-xl border text-xs font-mono ${
-                                          tc.passed 
-                                            ? 'bg-emerald-50/50 border-emerald-200 text-emerald-950' 
+                                        className={`p-3 rounded-xl border text-xs font-mono ${tc.passed
+                                            ? 'bg-emerald-50/50 border-emerald-200 text-emerald-950'
                                             : 'bg-rose-50/50 border-rose-200 text-rose-950'
-                                        }`}
+                                          }`}
                                       >
                                         <div className="flex items-center justify-between font-sans font-bold text-[11px] mb-1.5">
                                           <span className="flex items-center gap-1">
@@ -2879,25 +2833,22 @@ const MockExams = () => {
                   <div className="flex gap-1.5 bg-slate-100 p-1 rounded-xl">
                     <button
                       onClick={() => setSolutionFilter('all')}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                        solutionFilter === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
-                      }`}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${solutionFilter === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
+                        }`}
                     >
                       All ({testResult.detailed_results?.length || 0})
                     </button>
                     <button
                       onClick={() => setSolutionFilter('incorrect')}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                        solutionFilter === 'incorrect' ? 'bg-white text-rose-700 shadow-xs' : 'text-slate-600'
-                      }`}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${solutionFilter === 'incorrect' ? 'bg-white text-rose-700 shadow-xs' : 'text-slate-600'
+                        }`}
                     >
                       Incorrect Only ({testResult.detailed_results?.filter(d => d.is_correct === 0).length || 0})
                     </button>
                     <button
                       onClick={() => setSolutionFilter('correct')}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                        solutionFilter === 'correct' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600'
-                      }`}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${solutionFilter === 'correct' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600'
+                        }`}
                     >
                       Correct Only ({testResult.detailed_results?.filter(d => d.is_correct === 1).length || 0})
                     </button>
@@ -2916,22 +2867,19 @@ const MockExams = () => {
                       const isCorrect = res.is_correct === 1;
 
                       return (
-                        <div 
+                        <div
                           key={res.question_id || index}
-                          className={`p-6 rounded-2xl border transition-all ${
-                            isCorrect ? 'border-emerald-200 bg-emerald-50/20' : 'border-rose-200 bg-rose-50/20'
-                          }`}
+                          className={`p-6 rounded-2xl border transition-all ${isCorrect ? 'border-emerald-200 bg-emerald-50/20' : 'border-rose-200 bg-rose-50/20'
+                            }`}
                         >
                           <div className="flex items-start justify-between gap-3 mb-3">
                             <div className="flex items-center gap-2">
-                              <span className={`w-7 h-7 rounded-lg text-xs font-extrabold flex items-center justify-center text-white ${
-                                isCorrect ? 'bg-emerald-600' : 'bg-rose-600'
-                              }`}>
+                              <span className={`w-7 h-7 rounded-lg text-xs font-extrabold flex items-center justify-center text-white ${isCorrect ? 'bg-emerald-600' : 'bg-rose-600'
+                                }`}>
                                 {index + 1}
                               </span>
-                              <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${
-                                isCorrect ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                              }`}>
+                              <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${isCorrect ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                                }`}>
                                 {isCorrect ? 'Correct' : (res.user_selected_index === null ? 'Not Answered' : 'Incorrect')}
                               </span>
                             </div>
@@ -2962,9 +2910,8 @@ const MockExams = () => {
                                     className={`p-3 rounded-xl border text-xs flex items-center justify-between ${optStyle}`}
                                   >
                                     <div className="flex items-center gap-2.5">
-                                      <span className={`w-5 h-5 rounded-md text-[11px] font-bold flex items-center justify-center ${
-                                        isCorrectOpt ? 'bg-emerald-600 text-white' : (isUserChoice ? 'bg-rose-600 text-white' : 'bg-slate-200 text-slate-600')
-                                      }`}>
+                                      <span className={`w-5 h-5 rounded-md text-[11px] font-bold flex items-center justify-center ${isCorrectOpt ? 'bg-emerald-600 text-white' : (isUserChoice ? 'bg-rose-600 text-white' : 'bg-slate-200 text-slate-600')
+                                        }`}>
                                         {letter}
                                       </span>
                                       <span>{opt.option_text}</span>

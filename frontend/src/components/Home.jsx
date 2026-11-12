@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { 
-  Clock, 
-  FileText, 
-  Mic, 
-  Target, 
-  TrendingUp, 
+import api from '../services/api';
+import {
+  Clock,
+  FileText,
+  Mic,
+  Target,
+  TrendingUp,
   Award,
   ArrowRight,
   BookOpen,
@@ -53,7 +53,7 @@ const Home = () => {
     const currentUserId = (localStorage.getItem('user_id') || localStorage.getItem('user_email') || 'ashalathaavuru7@gmail.com').trim().toLowerCase();
     try {
       setLoading(true);
-      const res = await axios.get('http://localhost:5000/api/dashboard/stats', {
+      const res = await api.get('/dashboard/stats', {
         headers: {
           'x-user-id': currentUserId
         }
@@ -101,7 +101,7 @@ const Home = () => {
 
     try {
       const currentUserId = (localStorage.getItem('user_id') || localStorage.getItem('user_email') || 'ashalathaavuru7@gmail.com').trim().toLowerCase();
-      await axios.post('http://localhost:5000/api/user/profile', {
+      await api.post('/user/profile', {
         targetRole: newRole
       }, {
         headers: {
@@ -205,7 +205,7 @@ const Home = () => {
 
   return (
     <div className="min-h-full flex flex-col py-6 px-4 max-w-7xl mx-auto space-y-8">
-      
+
       {/* 1. User Profile & Stats Section */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Profile Card */}
@@ -215,7 +215,7 @@ const Home = () => {
             {user.initials || 'A'}
           </div>
           <h2 className="mt-4 text-xl font-bold text-gray-900">{user.displayName}</h2>
-          
+
           {/* Target Job Role with subtle edit capability */}
           <div className="mt-1 mb-4 flex items-center justify-center">
             {isEditingRole ? (
@@ -236,8 +236,8 @@ const Home = () => {
                 </button>
               </form>
             ) : (
-              <div 
-                className="flex items-center gap-1.5 cursor-pointer group" 
+              <div
+                className="flex items-center gap-1.5 cursor-pointer group"
                 onClick={() => { setRoleInput(userRole || ''); setIsEditingRole(true); }}
                 title="Click to set or change your target role"
               >
@@ -250,8 +250,8 @@ const Home = () => {
           </div>
 
           <div className="w-full bg-gray-100 rounded-full h-2.5 mb-2">
-            <div 
-              className="bg-blue-600 h-2.5 rounded-full transition-all duration-500" 
+            <div
+              className="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
               style={{ width: loading ? '0%' : (stats.placementReadiness != null ? `${stats.placementReadiness}%` : '0%') }}
             ></div>
           </div>

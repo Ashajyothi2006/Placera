@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import axios from 'axios';
-import { 
-  Send, User, Bot, Briefcase, Plus, MessageSquare, 
-  Trash2, Edit2, Check, X, Search, Sparkles, Clock, 
-  ChevronRight, ArrowLeft, RefreshCw 
+import api from '../services/api';
+import {
+  Send, User, Bot, Briefcase, Plus, MessageSquare,
+  Trash2, Edit2, Check, X, Search, Sparkles, Clock,
+  ChevronRight, ArrowLeft, RefreshCw
 } from 'lucide-react';
 
 const DEFAULT_GREETING = {
@@ -55,7 +55,7 @@ const formatTimeAgo = (dateStr) => {
 const CareerAgent = () => {
   const scrollRef = useRef(null);
   const isSubmittingRef = useRef(false);
-  
+
   // Conversations State
   const [conversations, setConversations] = useState([]);
   const [currentConversationId, setCurrentConversationId] = useState(null);
@@ -63,17 +63,17 @@ const CareerAgent = () => {
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const [isLoadingChat, setIsLoadingChat] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // Inline edit & delete states
   const [editingConvId, setEditingConvId] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
   const [deletingConvId, setDeletingConvId] = useState(null);
-  
+
   // Chat state
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [chatHistory, setChatHistory] = useState([DEFAULT_GREETING]);
-  
+
   // Mobile sidebar toggle
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
@@ -91,7 +91,7 @@ const CareerAgent = () => {
     setIsLoadingConversations(true);
     try {
       const userId = getUserId();
-      const res = await axios.get('http://localhost:5000/api/agent/conversations', {
+      const res = await api.get('/agent/conversations', {
         headers: { 'x-user-id': userId }
       });
       const list = res.data?.conversations || [];
@@ -120,7 +120,7 @@ const CareerAgent = () => {
 
     try {
       const userId = getUserId();
-      const res = await axios.get(`http://localhost:5000/api/agent/conversations/${convId}`, {
+      const res = await api.get(`/agent/conversations/${convId}`, {
         headers: { 'x-user-id': userId }
       });
 
@@ -152,7 +152,7 @@ const CareerAgent = () => {
       setIsLoadingConversations(true);
       try {
         const userId = getUserId();
-        const res = await axios.get('http://localhost:5000/api/agent/conversations', {
+        const res = await api.get('/agent/conversations', {
           headers: { 'x-user-id': userId }
         });
         const list = res.data?.conversations || [];
@@ -226,8 +226,7 @@ const CareerAgent = () => {
 
     try {
       const userId = getUserId();
-      const res = await axios.patch(
-        `http://localhost:5000/api/agent/conversations/${convId}`,
+      const res = await api.patch(`/agent/conversations/${convId}`,
         { title: cleanTitle },
         { headers: { 'x-user-id': userId } }
       );
@@ -264,7 +263,7 @@ const CareerAgent = () => {
     if (e) e.stopPropagation();
     try {
       const userId = getUserId();
-      await axios.delete(`http://localhost:5000/api/agent/conversations/${convId}`, {
+      await api.delete(`/agent/conversations/${convId}`, {
         headers: { 'x-user-id': userId }
       });
       setConversations(prev => prev.filter(c => c.id !== convId));
@@ -300,8 +299,7 @@ const CareerAgent = () => {
 
     try {
       const userId = getUserId();
-      const response = await axios.post(
-        'http://localhost:5000/api/agent',
+      const response = await api.post('/agent',
         {
           prompt: userMessage,
           history: newHistory.filter(msg => msg.sender !== 'System'),
@@ -345,22 +343,22 @@ const CareerAgent = () => {
   };
 
   // Filter conversations by search term
-  const filteredConversations = conversations.filter(c => 
+  const filteredConversations = conversations.filter(c =>
     (c.title || '').toLowerCase().includes(searchQuery.toLowerCase().trim())
   );
 
   return (
     <div className="flex flex-col h-[calc(100vh-64px)] bg-white text-gray-800">
-      
+
       {/* Main Layout: Sidebar + Chat Area */}
       <div className="flex flex-1 overflow-hidden relative">
-        
+
         {/* LEFT: ChatGPT-Style Persistent Chat History Sidebar */}
         <aside className={`
           fixed md:static inset-y-0 left-0 z-30 w-72 md:w-80 bg-slate-50 border-r border-gray-200 flex flex-col transition-transform duration-200 ease-in-out
           ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         `}>
-          
+
           {/* Top of Sidebar: Brand & New Chat */}
           <div className="p-3.5 border-b border-gray-200 bg-white">
             <div className="flex items-center justify-between mb-3">
@@ -371,7 +369,7 @@ const CareerAgent = () => {
                   AI Career Agent
                 </h3>
               </div>
-              <button 
+              <button
                 onClick={() => setIsMobileSidebarOpen(false)}
                 className="md:hidden p-1 text-gray-400 hover:text-gray-700"
               >
@@ -413,9 +411,9 @@ const CareerAgent = () => {
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
             <div className="px-2 pt-2 pb-1 flex items-center justify-between text-[11px] font-bold text-gray-400 uppercase tracking-wider">
               <span>Recent</span>
-              <button 
-                onClick={() => fetchConversations()} 
-                title="Refresh history" 
+              <button
+                onClick={() => fetchConversations()}
+                title="Refresh history"
                 className="hover:text-blue-600 transition-colors"
               >
                 <RefreshCw size={12} className={isLoadingConversations ? 'animate-spin' : ''} />
@@ -441,11 +439,10 @@ const CareerAgent = () => {
                   <div
                     key={conv.id}
                     onClick={() => handleSelectConversation(conv)}
-                    className={`group relative flex items-center justify-between p-2 rounded-xl text-xs cursor-pointer transition-all ${
-                      isActive
+                    className={`group relative flex items-center justify-between p-2 rounded-xl text-xs cursor-pointer transition-all ${isActive
                         ? 'bg-blue-100 text-blue-900 font-semibold border border-blue-200 shadow-xs'
                         : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                    }`}
+                      }`}
                   >
                     {isEditing ? (
                       /* Inline Rename Form */
@@ -575,7 +572,7 @@ const CareerAgent = () => {
 
         {/* Mobile Sidebar Overlay */}
         {isMobileSidebarOpen && (
-          <div 
+          <div
             onClick={() => setIsMobileSidebarOpen(false)}
             className="md:hidden fixed inset-0 bg-black/40 z-20"
           />
@@ -583,7 +580,7 @@ const CareerAgent = () => {
 
         {/* RIGHT: Chat Window */}
         <div className="flex-1 flex flex-col relative bg-white overflow-hidden">
-          
+
           {/* Mobile Sidebar Toggle Button */}
           <div className="md:hidden absolute top-3 left-3 z-10">
             <button
@@ -594,7 +591,7 @@ const CareerAgent = () => {
               <MessageSquare size={18} />
             </button>
           </div>
-          
+
           {/* Chat Messages Area */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6">
             {isLoadingChat ? (
@@ -604,27 +601,25 @@ const CareerAgent = () => {
               </div>
             ) : (
               chatHistory.map((msg, idx) => (
-                <div 
-                  key={idx} 
+                <div
+                  key={idx}
                   className={`flex gap-3 md:gap-4 max-w-3xl mx-auto ${msg.sender === 'User' ? 'flex-row-reverse' : ''}`}
                 >
                   {/* Avatar */}
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    msg.sender === 'User' 
-                      ? 'bg-blue-100 text-blue-600' 
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${msg.sender === 'User'
+                      ? 'bg-blue-100 text-blue-600'
                       : 'bg-green-100 text-green-600'
-                  }`}>
+                    }`}>
                     {msg.sender === 'User' ? <User size={18} /> : <Bot size={18} />}
                   </div>
 
                   {/* Message Bubble */}
-                  <div className={`p-4 rounded-2xl max-w-[85%] sm:max-w-[80%] whitespace-pre-wrap text-sm leading-relaxed ${
-                    msg.sender === 'User' 
-                      ? 'bg-blue-600 text-white rounded-tr-none shadow-sm' 
+                  <div className={`p-4 rounded-2xl max-w-[85%] sm:max-w-[80%] whitespace-pre-wrap text-sm leading-relaxed ${msg.sender === 'User'
+                      ? 'bg-blue-600 text-white rounded-tr-none shadow-sm'
                       : msg.sender === 'System'
                         ? 'bg-red-50 text-red-600 border border-red-200'
                         : 'bg-gray-100 text-gray-800 rounded-tl-none shadow-xs'
-                  }`}>
+                    }`}>
                     {msg.text}
                   </div>
                 </div>
@@ -648,22 +643,21 @@ const CareerAgent = () => {
           <div className="p-4 bg-white border-t border-gray-200">
             <div className="max-w-3xl mx-auto relative">
               <form onSubmit={handleSendMessage} className="flex gap-2 relative">
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
-                  placeholder="Ask anything about your placement preparation..." 
+                  placeholder="Ask anything about your placement preparation..."
                   className="w-full p-3.5 pr-14 text-sm rounded-xl border border-gray-300 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   disabled={isTyping || isLoadingChat}
                 />
-                <button 
-                  type="submit" 
-                  disabled={isTyping || !inputMessage.trim() || isLoadingChat} 
-                  className={`absolute right-2 top-2 bottom-2 px-3 rounded-lg transition-colors flex items-center justify-center ${
-                    inputMessage.trim() && !isTyping && !isLoadingChat
-                      ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-xs' 
+                <button
+                  type="submit"
+                  disabled={isTyping || !inputMessage.trim() || isLoadingChat}
+                  className={`absolute right-2 top-2 bottom-2 px-3 rounded-lg transition-colors flex items-center justify-center ${inputMessage.trim() && !isTyping && !isLoadingChat
+                      ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-xs'
                       : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  }`}
+                    }`}
                   title="Send message"
                 >
                   <Send size={18} />
@@ -675,7 +669,7 @@ const CareerAgent = () => {
               </div>
             </div>
           </div>
-          
+
         </div>
       </div>
     </div>

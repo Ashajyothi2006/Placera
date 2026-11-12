@@ -1,15 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Camera, 
-  Mic, 
-  PhoneOff, 
-  Play, 
-  MicOff, 
-  VideoOff, 
-  Send, 
-  Volume2, 
-  Sparkles, 
-  Radio, 
+import {
+  Camera,
+  Mic,
+  PhoneOff,
+  Play,
+  MicOff,
+  VideoOff,
+  Send,
+  Volume2,
+  Sparkles,
+  Radio,
   RefreshCw,
   MessageSquare,
   ShieldCheck,
@@ -27,7 +27,7 @@ import {
   AlertTriangle,
   X
 } from 'lucide-react';
-import axios from 'axios';
+import api from '../services/api';
 import { behaviorTracker } from '../services/behaviorTracker';
 
 const cleanErrorMessage = (err) => {
@@ -57,7 +57,7 @@ const LiveInterview = () => {
   const spokenTextRef = useRef('');
   const transcriptRef = useRef([]);
   const handleSendAnswerRef = useRef(null);
-  
+
   // Pre-interview setup state
   const getInitialName = () => {
     const storedName = localStorage.getItem('user_name');
@@ -111,12 +111,12 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
   const [isListening, setIsListening] = useState(false);
   const [spokenText, setSpokenText] = useState('');
   const [showTranscript, setShowTranscript] = useState(true);
-  
+
   // Voice selection state for high-clarity TTS
   const [availableVoices, setAvailableVoices] = useState([]);
   const [selectedVoiceUri, setSelectedVoiceUri] = useState('');
   const [speechSpeed, setSpeechSpeed] = useState(0.96);
-  
+
   // Call duration timer
   const [callTime, setCallTime] = useState(0);
 
@@ -165,7 +165,7 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
       const englishVoices = voices.filter(v => v.lang.startsWith('en'));
       setAvailableVoices(englishVoices.length > 0 ? englishVoices : voices);
 
-      const bestVoice = 
+      const bestVoice =
         englishVoices.find(v => v.name.includes('Natural') && (v.name.includes('Jenny') || v.name.includes('Aria') || v.name.includes('Guy'))) ||
         englishVoices.find(v => v.name.includes('Google US English')) ||
         englishVoices.find(v => v.name.includes('Natural')) ||
@@ -206,11 +206,11 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
     if (isAiSpeaking) {
       if (speakingVideoRef.current) {
         speakingVideoRef.current.currentTime = 0;
-        speakingVideoRef.current.play().catch(() => {});
+        speakingVideoRef.current.play().catch(() => { });
       }
     } else {
       if (listeningVideoRef.current) {
-        listeningVideoRef.current.play().catch(() => {});
+        listeningVideoRef.current.play().catch(() => { });
       }
     }
   }, [isAiSpeaking]);
@@ -346,7 +346,7 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
               try {
                 recognitionRef.current = setupRecognition();
                 recognitionRef.current?.start();
-              } catch (e2) {}
+              } catch (e2) { }
             }
           }
         }, 120);
@@ -459,14 +459,14 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
   const toggleListening = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return alert("Your browser does not support Speech Recognition. Please use Chrome or Edge.");
-    
+
     if (isListening) {
       // User clicked to finish speaking & submit answer
       isListeningRef.current = false;
       setIsListening(false);
       if (micRestartTimeoutRef.current) clearTimeout(micRestartTimeoutRef.current);
       if (recognitionRef.current) {
-        try { recognitionRef.current.stop(); } catch (e) {}
+        try { recognitionRef.current.stop(); } catch (e) { }
       }
 
       const textToSubmit = (spokenTextRef.current || accumulatedTranscriptRef.current || '').trim();
@@ -499,7 +499,7 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
       } catch (err) {
         console.warn("Speech recognition starting existing instance:", err);
         recognitionRef.current = setupRecognition();
-        try { recognitionRef.current.start(); } catch (e2) {}
+        try { recognitionRef.current.start(); } catch (e2) { }
       }
     }
   };
@@ -508,20 +508,20 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
   const speakAIResponse = (text) => {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
-    
+
     const utterance = new SpeechSynthesisUtterance(text);
     const voices = window.speechSynthesis.getVoices();
-    
+
     let voice = voices.find(v => v.voiceURI === selectedVoiceUri);
     if (!voice) {
-      voice = 
+      voice =
         voices.find(v => v.name.includes('Natural') && (v.name.includes('Jenny') || v.name.includes('Aria') || v.name.includes('Guy'))) ||
         voices.find(v => v.name.includes('Google US English')) ||
         voices.find(v => v.name.includes('Natural')) ||
         voices.find(v => v.name.includes('Zira') || v.name.includes('Samantha')) ||
         voices.find(v => v.lang.startsWith('en'));
     }
-    
+
     if (voice) {
       utterance.voice = voice;
     }
@@ -573,7 +573,7 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await axios.post('http://localhost:5000/api/resume/parse', formData, {
+      const res = await api.post('/resume/parse', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
@@ -647,7 +647,7 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
     setIsInitializing(true);
     try {
       // Request initial tailored question from Gemini or adaptive engine
-      const response = await axios.post('http://localhost:5000/api/interview', {
+      const response = await api.post('/interview', {
         isStart: true,
         candidateName: (candidateName || '').trim() || 'Candidate',
         resumeText: (resumeText || '').slice(0, 4000),
@@ -657,7 +657,7 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
       });
 
       const openingQuestion = response.data.reply;
-      
+
       setTranscript([
         { sender: 'System', text: `Interview initialized for ${targetRole} at ${targetCompany}.${practiceTopic ? ` Practice focus: ${practiceTopic}.` : ''} Resume loaded successfully.` },
         { sender: 'AI', text: openingQuestion }
@@ -694,7 +694,7 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
     setTranscript(newTranscript);
 
     try {
-      const response = await axios.post('http://localhost:5000/api/interview', {
+      const response = await api.post('/interview', {
         candidateAnswer: text,
         candidateName: (candidateName || '').trim() || 'Candidate',
         chatHistory: newTranscript.filter(msg => msg.sender !== 'System'),
@@ -732,7 +732,7 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
     setIsAiSpeaking(false);
     if (window.speechSynthesis) window.speechSynthesis.cancel();
     if (isListening && recognitionRef.current) {
-      try { recognitionRef.current.stop(); } catch (e) {}
+      try { recognitionRef.current.stop(); } catch (e) { }
       setIsListening(false);
     }
 
@@ -746,7 +746,7 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
       const metrics = behaviorTracker.getSummaryMetrics();
       try {
         const currentUserId = localStorage.getItem('user_id') || localStorage.getItem('user_email') || 'ashalathaavuru7@gmail.com';
-        const response = await axios.post('http://localhost:5000/api/interview/evaluate', {
+        const response = await api.post('/interview/evaluate', {
           chatHistory: currentTranscript,
           resumeText: (resumeText || '').slice(0, 4000),
           candidateName: (candidateName || '').trim() || 'Candidate',
@@ -793,14 +793,14 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
 
   return (
     <div className="flex flex-col h-[calc(100vh-100px)] bg-slate-950 text-white rounded-2xl overflow-hidden shadow-2xl border border-slate-800 relative">
-      
+
       {/* ============================================================== */}
       {/* PRE-INTERVIEW SETUP & RESUME UPLOAD MODAL                      */}
       {/* ============================================================== */}
       {!hasStarted && (
         <div className="absolute inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-6 overflow-y-auto">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-8 shadow-2xl space-y-6">
-            
+
             {/* Header */}
             <div className="text-center space-y-2">
               <div className="inline-flex p-3 bg-blue-600/20 text-blue-400 rounded-2xl border border-blue-500/30 mb-2">
@@ -882,11 +882,10 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
                     key={item.id}
                     type="button"
                     onClick={() => setPracticeTopic(item.id)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
-                      practiceTopic === item.id
+                    className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${practiceTopic === item.id
                         ? 'bg-blue-600 text-white shadow-md shadow-blue-900/40 border border-blue-400'
                         : 'bg-slate-950 text-slate-300 hover:text-white border border-slate-800 hover:border-slate-700'
-                    }`}
+                      }`}
                   >
                     {item.label}
                   </button>
@@ -938,18 +937,18 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
               </div>
 
               {/* Upload Dropzone */}
-              <div 
+              <div
                 onClick={() => fileInputRef.current?.click()}
                 className="border-2 border-dashed border-slate-700 hover:border-blue-500 rounded-2xl p-6 text-center cursor-pointer transition-colors bg-slate-950/60 group"
               >
-                <input 
+                <input
                   ref={fileInputRef}
-                  type="file" 
-                  accept=".pdf,.txt,.docx,.doc" 
+                  type="file"
+                  accept=".pdf,.txt,.docx,.doc"
                   onChange={handleFileUpload}
-                  className="hidden" 
+                  className="hidden"
                 />
-                
+
                 {resumeFileName ? (
                   <div className="flex items-center justify-center gap-3 text-emerald-400">
                     <FileCheck size={28} />
@@ -1033,7 +1032,7 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
 
         {/* Audio Voice Quality & Microphone Controls */}
         <div className="flex items-center gap-3">
-          
+
           {/* Microphone Input Selector (Supports Built-in Mic & Earphones) */}
           <div className="flex items-center gap-2 bg-slate-800/80 px-2.5 py-1 rounded-xl border border-slate-700 text-xs">
             <Mic size={14} className={liveAudioVolume > 5 ? "text-emerald-400 animate-pulse" : "text-blue-400"} />
@@ -1079,7 +1078,7 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
           </div>
 
           {hasStarted && (
-            <button 
+            <button
               onClick={repeatLastAiQuestion}
               className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-lg text-slate-200 flex items-center gap-1.5 transition-colors border border-slate-700"
               title="Repeat Interviewer's Question"
@@ -1089,7 +1088,7 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
           )}
 
           {hasStarted && (
-            <button 
+            <button
               onClick={handleEndSession}
               className="bg-rose-600 hover:bg-rose-700 px-4 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-md"
             >
@@ -1106,7 +1105,7 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
             <Sparkles size={14} className="text-yellow-400 shrink-0" />
             <span><strong>Tip:</strong> Maintain eye contact and speak clearly. You can speak using your built-in microphone or earphones.</span>
           </div>
-          <button 
+          <button
             onClick={() => setShowTipBanner(false)}
             className="text-blue-400 hover:text-white text-xs font-semibold px-2 py-0.5 rounded transition-colors"
             title="Dismiss tip"
@@ -1120,15 +1119,14 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
       {/* 2. MAIN VIDEO STAGE (SIDE-BY-SIDE EQUAL 16:9 TILES)            */}
       {/* ============================================================== */}
       <div className="flex-1 flex flex-col lg:flex-row min-h-0 relative">
-        
+
         {/* VIDEO GRID */}
         <div className="flex-1 p-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-center justify-center min-h-0 bg-slate-950 overflow-y-auto">
-          
+
           {/* TILE 1: 100% REAL HUMAN VIDEO STREAM (SMOOTH REAL VIDEO, ZERO BLINKING) */}
-          <div className={`relative aspect-video rounded-2xl overflow-hidden bg-slate-900 border-2 transition-all duration-300 shadow-2xl flex items-center justify-center ${
-            isAiSpeaking ? 'border-blue-500 shadow-[0_0_35px_rgba(59,130,246,0.35)] ring-2 ring-blue-500/50' : 'border-slate-800'
-          }`}>
-            
+          <div className={`relative aspect-video rounded-2xl overflow-hidden bg-slate-900 border-2 transition-all duration-300 shadow-2xl flex items-center justify-center ${isAiSpeaking ? 'border-blue-500 shadow-[0_0_35px_rgba(59,130,246,0.35)] ring-2 ring-blue-500/50' : 'border-slate-800'
+            }`}>
+
             {/* Real Human Video 1: ACTIVE SPEAKING VIDEO */}
             <video
               ref={speakingVideoRef}
@@ -1136,9 +1134,8 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
               playsInline
               muted
               loop
-              className={`absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-300 ${
-                isAiSpeaking ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
-              }`}
+              className={`absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-300 ${isAiSpeaking ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+                }`}
             />
 
             {/* Real Human Video 2: LISTENING & ATTENTIVE VIDEO */}
@@ -1149,9 +1146,8 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
               muted
               loop
               autoPlay
-              className={`absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-300 ${
-                !isAiSpeaking ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
-              }`}
+              className={`absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-300 ${!isAiSpeaking ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+                }`}
             />
 
             {/* Video HUD: Nameplate */}
@@ -1201,17 +1197,15 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
           </div>
 
           {/* TILE 2: CANDIDATE WEBCAM */}
-          <div className={`relative aspect-video rounded-2xl overflow-hidden bg-slate-900 border-2 transition-all duration-300 shadow-2xl flex items-center justify-center ${
-            isListening ? 'border-red-500 shadow-[0_0_35px_rgba(239,68,68,0.35)] ring-2 ring-red-500/50' : 'border-slate-800'
-          }`}>
-            <video 
-              ref={videoRef} 
-              autoPlay 
-              playsInline 
-              muted 
-              className={`w-full h-full object-cover transform scale-x-[-1] ${
-                !camActive ? 'hidden' : ''
-              }`}
+          <div className={`relative aspect-video rounded-2xl overflow-hidden bg-slate-900 border-2 transition-all duration-300 shadow-2xl flex items-center justify-center ${isListening ? 'border-red-500 shadow-[0_0_35px_rgba(239,68,68,0.35)] ring-2 ring-red-500/50' : 'border-slate-800'
+            }`}>
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className={`w-full h-full object-cover transform scale-x-[-1] ${!camActive ? 'hidden' : ''
+                }`}
             ></video>
 
             {!camActive && (
@@ -1308,25 +1302,23 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
                 {transcript.filter(t => t.sender !== 'System').length} messages
               </span>
             </div>
-            
+
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
               {transcript.map((msg, idx) => (
-                <div 
-                  key={idx} 
-                  className={`flex flex-col ${
-                    msg.sender === 'Candidate' ? 'items-end' : 'items-start'
-                  }`}
+                <div
+                  key={idx}
+                  className={`flex flex-col ${msg.sender === 'Candidate' ? 'items-end' : 'items-start'
+                    }`}
                 >
                   <span className="text-[10px] text-slate-400 mb-1 px-1 font-semibold uppercase tracking-wider">
                     {msg.sender === 'AI' ? 'Sarah (Interviewer)' : msg.sender}
                   </span>
-                  <div className={`p-3 rounded-2xl max-w-[90%] text-xs leading-relaxed shadow-sm ${
-                    msg.sender === 'AI' 
-                      ? 'bg-blue-600/90 text-white rounded-tl-sm border border-blue-500/30' 
-                      : msg.sender === 'System' 
+                  <div className={`p-3 rounded-2xl max-w-[90%] text-xs leading-relaxed shadow-sm ${msg.sender === 'AI'
+                      ? 'bg-blue-600/90 text-white rounded-tl-sm border border-blue-500/30'
+                      : msg.sender === 'System'
                         ? 'bg-slate-800/80 text-slate-400 text-[11px] italic rounded-lg w-full text-center border border-slate-700/50'
                         : 'bg-emerald-600/90 text-white rounded-tr-sm border border-emerald-500/30'
-                  }`}>
+                    }`}>
                     {msg.text}
                   </div>
                 </div>
@@ -1335,26 +1327,26 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
 
             {/* Manual Input Fallback */}
             {hasStarted && (
-              <form 
-                onSubmit={(e) => { 
-                  e.preventDefault(); 
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
                   const val = e.target.manualInput.value;
                   if (!val.trim() || isAiThinking || isSubmittingRef.current) return;
-                  e.target.manualInput.value = ''; 
-                  handleSendAnswer(val); 
-                }} 
+                  e.target.manualInput.value = '';
+                  handleSendAnswer(val);
+                }}
                 className="p-2.5 bg-slate-950 border-t border-slate-800 flex gap-2"
               >
-                <input 
+                <input
                   name="manualInput"
-                  type="text" 
-                  placeholder="Or type technical answer..." 
+                  type="text"
+                  placeholder="Or type technical answer..."
                   className="flex-1 bg-slate-900 text-xs text-white px-3 py-2 rounded-xl border border-slate-700 focus:outline-none focus:border-blue-500 transition-colors"
                   disabled={isAiThinking || isListening}
                 />
-                <button 
-                  type="submit" 
-                  disabled={isAiThinking || isListening} 
+                <button
+                  type="submit"
+                  disabled={isAiThinking || isListening}
                   className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 p-2 rounded-xl text-white transition-colors"
                 >
                   <Send size={15} />
@@ -1370,23 +1362,22 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
       {/* 3. FLOATING CONFERENCE DOCK (Controls)                         */}
       {/* ============================================================== */}
       <div className="px-6 py-3 bg-slate-900 border-t border-slate-800 flex items-center justify-between">
-        
+
         {/* Left: Device status */}
         <div className="text-xs text-slate-400 hidden sm:block">
-          Mic: <span className={micActive ? "text-emerald-400 font-semibold" : "text-rose-400 font-semibold"}>{micActive ? "Active" : "Muted"}</span> • 
+          Mic: <span className={micActive ? "text-emerald-400 font-semibold" : "text-rose-400 font-semibold"}>{micActive ? "Active" : "Muted"}</span> •
           Camera: <span className={camActive ? "text-emerald-400 font-semibold ml-1" : "text-rose-400 font-semibold ml-1"}>{camActive ? "Active" : "Disabled"}</span>
         </div>
 
         {/* Center: Controls */}
         <div className="flex items-center gap-3 mx-auto">
           {/* Push to Talk / Speech Record */}
-          <button 
-            onClick={toggleListening} 
-            className={`p-3.5 rounded-full flex items-center justify-center transition-all ${
-              isListening 
-                ? `bg-red-600 text-white shadow-[0_0_25px_rgba(220,38,38,0.9)] scale-110 ring-4 ${liveAudioVolume > 8 ? 'ring-emerald-400' : 'ring-red-400/50'}` 
+          <button
+            onClick={toggleListening}
+            className={`p-3.5 rounded-full flex items-center justify-center transition-all ${isListening
+                ? `bg-red-600 text-white shadow-[0_0_25px_rgba(220,38,38,0.9)] scale-110 ring-4 ${liveAudioVolume > 8 ? 'ring-emerald-400' : 'ring-red-400/50'}`
                 : 'bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700'
-            }`}
+              }`}
             title={isListening ? "Stop Recording & Submit" : "Click to Speak Your Response"}
           >
             {isListening ? (
@@ -1398,41 +1389,38 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
               </div>
             ) : <Mic size={20} />}
           </button>
-          
+
           {/* Camera On / Off */}
-          <button 
-            onClick={toggleCam} 
-            className={`p-3.5 rounded-full transition-colors border ${
-              camActive 
-                ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700' 
+          <button
+            onClick={toggleCam}
+            className={`p-3.5 rounded-full transition-colors border ${camActive
+                ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
                 : 'bg-red-600 text-white border-red-500'
-            }`}
+              }`}
             title={camActive ? "Turn Off Camera" : "Turn On Camera"}
           >
             {camActive ? <Camera size={20} /> : <VideoOff size={20} />}
           </button>
 
           {/* Mic Mute / Unmute */}
-          <button 
-            onClick={toggleMic} 
-            className={`p-3.5 rounded-full transition-colors border ${
-              micActive 
-                ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700' 
+          <button
+            onClick={toggleMic}
+            className={`p-3.5 rounded-full transition-colors border ${micActive
+                ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
                 : 'bg-red-600 text-white border-red-500'
-            }`}
+              }`}
             title={micActive ? "Mute Microphone" : "Unmute Microphone"}
           >
             {micActive ? <Activity size={20} /> : <MicOff size={20} />}
           </button>
 
           {/* Toggle Transcript Drawer */}
-          <button 
-            onClick={() => setShowTranscript(!showTranscript)} 
-            className={`p-3.5 rounded-full transition-colors border ${
-              showTranscript 
-                ? 'bg-blue-600 text-white border-blue-500 shadow-md' 
+          <button
+            onClick={() => setShowTranscript(!showTranscript)}
+            className={`p-3.5 rounded-full transition-colors border ${showTranscript
+                ? 'bg-blue-600 text-white border-blue-500 shadow-md'
                 : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
-            }`}
+              }`}
             title="Toggle Transcript Drawer"
           >
             <MessageSquare size={20} />
@@ -1442,7 +1430,7 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
         {/* Right: End Call */}
         <div className="hidden sm:block">
           {hasStarted && (
-            <button 
+            <button
               onClick={handleEndSession}
               className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-md transition-colors"
             >
@@ -1459,7 +1447,7 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
       {showReportModal && (
         <div className="absolute inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl space-y-6 max-h-[92vh] overflow-y-auto">
-            
+
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-800 pb-4">
               <div className="flex items-center gap-3">
@@ -1492,7 +1480,7 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
               </div>
             ) : interviewReport ? (
               <div className="space-y-6">
-                
+
                 {/* Score & Verdict Banner */}
                 <div className="bg-gradient-to-r from-blue-900/40 via-indigo-900/30 to-purple-900/40 border border-blue-500/30 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
@@ -1510,11 +1498,10 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
 
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-300 font-medium">Hiring Verdict:</span>
-                    <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider ${
-                      interviewReport.verdict === 'Strong Hire' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' :
-                      interviewReport.verdict === 'Hire' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40' :
-                      'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                    }`}>
+                    <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider ${interviewReport.verdict === 'Strong Hire' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' :
+                        interviewReport.verdict === 'Hire' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40' :
+                          'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                      }`}>
                       {interviewReport.verdict || 'Hire'}
                     </span>
                   </div>
@@ -1526,7 +1513,7 @@ Backend & Cloud: Node.js, Express, PostgreSQL, Redis, Docker, Kubernetes, AWS (S
                     <Activity size={14} className="text-blue-400" /> Competency & Behavioral Analysis
                   </h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    
+
                     {/* 1. Communication */}
                     <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3.5 space-y-1">
                       <div className="flex justify-between items-center text-xs">

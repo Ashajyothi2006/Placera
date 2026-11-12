@@ -1,14 +1,15 @@
 import React, { useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import html2pdf from 'html2pdf.js';
-import { 
-  ArrowLeft, 
-  Eye, 
-  Download, 
-  Sparkles, 
-  RotateCcw, 
-  CheckCircle2, 
-  Layout, 
+
+import {
+  ArrowLeft,
+  Eye,
+  Download,
+  Sparkles,
+  RotateCcw,
+  CheckCircle2,
+  Layout,
   FileText,
   User,
   Briefcase,
@@ -17,7 +18,7 @@ import {
   Cpu
 } from 'lucide-react';
 import AtsResumeAnalysis from './AtsResumeAnalysis';
-
+import api from '../services/api';
 const ResumeBuilder = () => {
   const resumeRef = useRef();
   const location = useLocation();
@@ -135,26 +136,24 @@ const ResumeBuilder = () => {
     try {
       const userId = localStorage.getItem('user_id') || localStorage.getItem('user_email') || 'ashalathaavuru7@gmail.com';
       const resumeTitle = `${resumeData.personal.name ? resumeData.personal.name.trim() : 'Executive'} Resume`;
-      fetch('http://localhost:5000/api/resumes/record', {
-        method: 'POST',
+      api.post('/resumes/record', {
+        userId,
+        title: resumeTitle,
+        templateId: selectedTemplate,
+        resumeData
+      }, {
         headers: {
-          'Content-Type': 'application/json',
           'x-user-id': userId
-        },
-        body: JSON.stringify({
-          userId,
-          title: resumeTitle,
-          templateId: selectedTemplate,
-          resumeData
-        })
+        }
       }).catch(err => console.warn('Could not record resume:', err));
-    } catch (e) {}
+    }
+    catch (e) { }
   };
 
   // ----------------------------------------------------
   // TEMPLATE RENDERERS
   // ----------------------------------------------------
-  
+
   // 1. Modern
   const renderModernTemplate = () => (
     <div className="font-sans text-gray-900 p-8">
@@ -257,7 +256,7 @@ const ResumeBuilder = () => {
           </div>
         </div>
       </div>
-      
+
       <div className="p-8 flex-1 grid grid-cols-3 gap-6">
         <div className="col-span-2 space-y-6">
           <div>
@@ -273,7 +272,7 @@ const ResumeBuilder = () => {
             <p className="whitespace-pre-wrap text-gray-700 text-xs leading-relaxed">{resumeData.projects || 'Your creative projects...'}</p>
           </div>
         </div>
-        
+
         <div className="col-span-1 bg-fuchsia-50/50 p-5 rounded-2xl border border-fuchsia-100 space-y-6 h-fit">
           <div>
             <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider mb-2 border-b border-fuchsia-200 pb-1">Skills & Tools</h3>
@@ -329,7 +328,7 @@ const ResumeBuilder = () => {
           <h1 className="text-2xl font-black text-gray-900 leading-tight">{resumeData.personal.name || 'Your Name'}</h1>
           <p className="text-xs text-teal-600 font-bold uppercase tracking-wider mt-1">{resumeData.personal.role || 'Target Role'}</p>
         </div>
-        
+
         <div className="space-y-1.5 text-xs text-gray-600 break-words">
           <p className="font-semibold text-gray-800 text-[11px] uppercase tracking-wider">Contact</p>
           <p>{resumeData.personal.email || 'email@example.com'}</p>
@@ -347,7 +346,7 @@ const ResumeBuilder = () => {
           <p className="whitespace-pre-wrap text-xs leading-relaxed text-gray-600">{resumeData.education || 'Your education...'}</p>
         </div>
       </div>
-      
+
       <div className="w-2/3 space-y-6">
         <div>
           <h3 className="text-xs font-bold uppercase tracking-wider text-teal-700 mb-2 border-b border-teal-100 pb-1">Experience</h3>
@@ -363,7 +362,7 @@ const ResumeBuilder = () => {
 
   return (
     <div className="flex flex-col gap-6">
-      
+
       {/* ============================================================== */}
       {/* 1. TOP SECTION: TEMPLATE SELECTION GALLERY IN RESUME BUILDER   */}
       {/* ============================================================== */}
@@ -395,14 +394,14 @@ const ResumeBuilder = () => {
             >
               <RotateCcw size={14} /> Clear Form
             </button>
-            <button 
-              onClick={() => setIsPreviewMode(true)} 
+            <button
+              onClick={() => setIsPreviewMode(true)}
               className="text-xs font-semibold px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg flex items-center gap-1.5 shadow-sm transition-transform hover:scale-105"
             >
               <Eye size={14} /> Fullscreen Preview
             </button>
-            <button 
-              onClick={handleDownloadPDF} 
+            <button
+              onClick={handleDownloadPDF}
               className="text-xs font-bold px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-1.5 shadow-md transition-transform hover:scale-105"
             >
               <Download size={14} /> Download PDF
@@ -418,18 +417,17 @@ const ResumeBuilder = () => {
               <div
                 key={tpl.id}
                 onClick={() => setSelectedTemplate(tpl.id)}
-                className={`relative rounded-xl border-2 overflow-hidden cursor-pointer transition-all duration-200 group bg-gray-50 flex flex-col ${
-                  isSelected 
-                    ? `${tpl.activeColor} shadow-md scale-[1.02] bg-white` 
+                className={`relative rounded-xl border-2 overflow-hidden cursor-pointer transition-all duration-200 group bg-gray-50 flex flex-col ${isSelected
+                    ? `${tpl.activeColor} shadow-md scale-[1.02] bg-white`
                     : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
-                }`}
+                  }`}
               >
                 {/* Thumbnail Preview */}
                 <div className="h-32 w-full relative overflow-hidden bg-gray-100">
-                  <img 
-                    src={tpl.img} 
-                    alt={tpl.name} 
-                    className="w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-105" 
+                  <img
+                    src={tpl.img}
+                    alt={tpl.name}
+                    className="w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
                   />
                   {isSelected && (
                     <div className="absolute top-2 right-2 bg-blue-600 text-white p-1 rounded-full shadow-md">
@@ -465,7 +463,7 @@ const ResumeBuilder = () => {
       {/* 2. MAIN SECTION: FORM EDITOR (LEFT) + REAL-TIME PREVIEW (RIGHT) */}
       {/* ============================================================== */}
       <div className="flex flex-col lg:flex-row gap-6 items-start">
-        
+
         {/* LEFT COLUMN: Input Form */}
         <div className="w-full lg:w-1/2 bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-6">
           <div className="flex items-center justify-between border-b border-gray-100 pb-4">
@@ -486,52 +484,52 @@ const ResumeBuilder = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Full Name</label>
-                <input 
-                  type="text" 
-                  value={resumeData.personal.name} 
-                  placeholder="e.g. Alex Morgan" 
-                  className="w-full text-sm border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all" 
-                  onChange={(e) => handleChange('personal', 'name', e.target.value)} 
+                <input
+                  type="text"
+                  value={resumeData.personal.name}
+                  placeholder="e.g. Alex Morgan"
+                  className="w-full text-sm border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                  onChange={(e) => handleChange('personal', 'name', e.target.value)}
                 />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Target Professional Role</label>
-                <input 
-                  type="text" 
-                  value={resumeData.personal.role} 
-                  placeholder="e.g. Senior Software Engineer" 
-                  className="w-full text-sm border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all" 
-                  onChange={(e) => handleChange('personal', 'role', e.target.value)} 
+                <input
+                  type="text"
+                  value={resumeData.personal.role}
+                  placeholder="e.g. Senior Software Engineer"
+                  className="w-full text-sm border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                  onChange={(e) => handleChange('personal', 'role', e.target.value)}
                 />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Email Address</label>
-                <input 
-                  type="email" 
-                  value={resumeData.personal.email} 
-                  placeholder="e.g. alex@example.com" 
-                  className="w-full text-sm border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all" 
-                  onChange={(e) => handleChange('personal', 'email', e.target.value)} 
+                <input
+                  type="email"
+                  value={resumeData.personal.email}
+                  placeholder="e.g. alex@example.com"
+                  className="w-full text-sm border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                  onChange={(e) => handleChange('personal', 'email', e.target.value)}
                 />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Phone Number</label>
-                <input 
-                  type="text" 
-                  value={resumeData.personal.phone} 
-                  placeholder="e.g. +1 (555) 000-0000" 
-                  className="w-full text-sm border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all" 
-                  onChange={(e) => handleChange('personal', 'phone', e.target.value)} 
+                <input
+                  type="text"
+                  value={resumeData.personal.phone}
+                  placeholder="e.g. +1 (555) 000-0000"
+                  className="w-full text-sm border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                  onChange={(e) => handleChange('personal', 'phone', e.target.value)}
                 />
               </div>
               <div className="sm:col-span-2">
                 <label className="block text-xs font-medium text-gray-600 mb-1">LinkedIn / Portfolio URL</label>
-                <input 
-                  type="text" 
-                  value={resumeData.personal.linkedin} 
-                  placeholder="e.g. linkedin.com/in/alexmorgan" 
-                  className="w-full text-sm border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all" 
-                  onChange={(e) => handleChange('personal', 'linkedin', e.target.value)} 
+                <input
+                  type="text"
+                  value={resumeData.personal.linkedin}
+                  placeholder="e.g. linkedin.com/in/alexmorgan"
+                  className="w-full text-sm border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                  onChange={(e) => handleChange('personal', 'linkedin', e.target.value)}
                 />
               </div>
             </div>
@@ -542,11 +540,11 @@ const ResumeBuilder = () => {
             <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
               <Briefcase size={14} className="text-blue-600" /> Work Experience
             </h4>
-            <textarea 
-              rows="5" 
-              value={resumeData.experience} 
-              placeholder="Role | Company (Years)&#10;• Key accomplishment 1&#10;• Key accomplishment 2..." 
-              className="w-full text-xs font-mono border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none leading-relaxed transition-all" 
+            <textarea
+              rows="5"
+              value={resumeData.experience}
+              placeholder="Role | Company (Years)&#10;• Key accomplishment 1&#10;• Key accomplishment 2..."
+              className="w-full text-xs font-mono border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none leading-relaxed transition-all"
               onChange={(e) => handleChange('experience', null, e.target.value)}
             />
           </div>
@@ -556,11 +554,11 @@ const ResumeBuilder = () => {
             <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
               <FolderGit2 size={14} className="text-blue-600" /> Key Projects & Initiatives
             </h4>
-            <textarea 
-              rows="4" 
-              value={resumeData.projects} 
-              placeholder="Project Title&#10;• Description of technology stack and measurable impact..." 
-              className="w-full text-xs font-mono border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none leading-relaxed transition-all" 
+            <textarea
+              rows="4"
+              value={resumeData.projects}
+              placeholder="Project Title&#10;• Description of technology stack and measurable impact..."
+              className="w-full text-xs font-mono border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none leading-relaxed transition-all"
               onChange={(e) => handleChange('projects', null, e.target.value)}
             />
           </div>
@@ -570,11 +568,11 @@ const ResumeBuilder = () => {
             <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
               <GraduationCap size={14} className="text-blue-600" /> Education & Certifications
             </h4>
-            <textarea 
-              rows="3" 
-              value={resumeData.education} 
-              placeholder="Degree, Major | University (Graduation Year)" 
-              className="w-full text-xs font-mono border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none leading-relaxed transition-all" 
+            <textarea
+              rows="3"
+              value={resumeData.education}
+              placeholder="Degree, Major | University (Graduation Year)"
+              className="w-full text-xs font-mono border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none leading-relaxed transition-all"
               onChange={(e) => handleChange('education', null, e.target.value)}
             />
           </div>
@@ -584,11 +582,11 @@ const ResumeBuilder = () => {
             <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
               <Cpu size={14} className="text-blue-600" /> Skills & Technical Stack
             </h4>
-            <textarea 
-              rows="3" 
-              value={resumeData.skills} 
-              placeholder="Languages: React, Node.js, Python, SQL, AWS..." 
-              className="w-full text-xs font-mono border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none leading-relaxed transition-all" 
+            <textarea
+              rows="3"
+              value={resumeData.skills}
+              placeholder="Languages: React, Node.js, Python, SQL, AWS..."
+              className="w-full text-xs font-mono border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none leading-relaxed transition-all"
               onChange={(e) => handleChange('skills', null, e.target.value)}
             />
           </div>
@@ -598,7 +596,7 @@ const ResumeBuilder = () => {
         {/* RIGHT COLUMN: Live Document Preview */}
         <div className="w-full lg:w-1/2 sticky top-24">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-            
+
             {/* Header bar of preview */}
             <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -627,10 +625,10 @@ const ResumeBuilder = () => {
 
             {/* Document Canvas Container */}
             <div className="p-4 bg-gray-200/80 overflow-y-auto max-h-[calc(100vh-240px)] flex justify-center items-start">
-              <div 
-                ref={resumeRef} 
+              <div
+                ref={resumeRef}
                 className="bg-white w-full max-w-xl shadow-xl transition-all duration-300 rounded-sm"
-                style={{ minHeight: '840px' }} 
+                style={{ minHeight: '840px' }}
               >
                 {selectedTemplate === 'modern' && renderModernTemplate()}
                 {selectedTemplate === 'classic' && renderClassicTemplate()}
@@ -639,7 +637,7 @@ const ResumeBuilder = () => {
                 {selectedTemplate === 'creative' && renderCreativeTemplate()}
               </div>
             </div>
-            
+
           </div>
         </div>
 
@@ -667,9 +665,8 @@ const ResumeBuilder = () => {
                   <button
                     key={t.id}
                     onClick={() => setSelectedTemplate(t.id)}
-                    className={`text-xs px-2.5 py-1 rounded font-medium transition-colors ${
-                      selectedTemplate === t.id ? 'bg-blue-600 text-white font-bold' : 'text-gray-400 hover:text-white'
-                    }`}
+                    className={`text-xs px-2.5 py-1 rounded font-medium transition-colors ${selectedTemplate === t.id ? 'bg-blue-600 text-white font-bold' : 'text-gray-400 hover:text-white'
+                      }`}
                   >
                     {t.name}
                   </button>
@@ -678,14 +675,14 @@ const ResumeBuilder = () => {
             </div>
 
             <div className="flex gap-3">
-              <button 
-                onClick={handleDownloadPDF} 
+              <button
+                onClick={handleDownloadPDF}
                 className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-5 rounded-lg text-sm flex items-center gap-1.5 shadow-md"
               >
                 <Download size={16} /> Download PDF
               </button>
-              <button 
-                onClick={() => setIsPreviewMode(false)} 
+              <button
+                onClick={() => setIsPreviewMode(false)}
                 className="bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold py-2 px-4 rounded-lg text-sm border border-gray-700"
               >
                 Close Preview

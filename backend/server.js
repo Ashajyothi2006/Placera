@@ -21,7 +21,7 @@ app.use(cors({
         ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
         : 'http://localhost:5173',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id']
 }));
 // Support large resume uploads without 413 Payload Too Large error
 app.use(express.json({ limit: '50mb' }));
@@ -38,12 +38,12 @@ const genAI = new GoogleGenerativeAI(config.gemini.apiKey);
 function sanitizeErrorMessage(err) {
     if (!err) return 'Unknown error occurred.';
     let message = typeof err === 'string' ? err : (err.message || String(err));
-    
+
     // Check for high demand / 503
     if (message.includes('503') || /high\s*demand/i.test(message) || /overloaded/i.test(message) || /spikes\s*in\s*demand/i.test(message)) {
         return 'The Gemini AI model is currently experiencing high demand (503 Service Unavailable). Please try again in a moment.';
     }
-    
+
     // Check for rate limit / 429
     if (message.includes('429') || /quota/i.test(message) || /resource has been exhausted/i.test(message)) {
         return 'Gemini API quota or rate limit reached (429). Please try again in a moment.';
@@ -77,12 +77,12 @@ async function callGemini(promptText, timeoutMs = 8000, maxModels = 4) {
     for (const modelName of modelsToTry) {
         try {
             const model = genAI.getGenerativeModel({ model: modelName });
-            
+
             let timeoutId;
             const timeoutPromise = new Promise((_, reject) => {
                 timeoutId = setTimeout(() => reject(new Error(`Timeout waiting for model ${modelName}`)), timeoutMs);
             });
-            
+
             const generatePromise = model.generateContent(promptText);
             const result = await Promise.race([generatePromise, timeoutPromise]);
             clearTimeout(timeoutId);
@@ -106,15 +106,15 @@ app.get('/', (req, res) => res.json({ message: 'Backend is running' }));
 // ----------------------------------------------------
 app.post('/api/interview', async (req, res) => {
     try {
-        const { 
-            candidateAnswer, 
-            chatHistory = [], 
-            resumeText = '', 
+        const {
+            candidateAnswer,
+            chatHistory = [],
+            resumeText = '',
             candidateName: passedCandidateName = '',
-            targetRole: passedTargetRole = 'Senior Full Stack Engineer', 
+            targetRole: passedTargetRole = 'Senior Full Stack Engineer',
             targetCompany = 'Google',
             requestedTopic = '',
-            isStart = false 
+            isStart = false
         } = req.body;
 
         // Clean candidate name - ensure %PDF or binary headers are never used as a name
@@ -497,7 +497,7 @@ async function extractResumeText(file) {
             const parser = new PDFParse({ data: file.buffer });
             const result = await parser.getText();
             extractedPdfText = result?.text || '';
-            try { await parser.destroy(); } catch (e) {}
+            try { await parser.destroy(); } catch (e) { }
         } catch (pdfErr) {
             console.warn('[PDFParse warning]:', pdfErr.message);
         }
@@ -519,7 +519,7 @@ async function extractResumeText(file) {
             if (fallbackText.trim().length > 30) {
                 return fallbackText.trim();
             }
-        } catch (e) {}
+        } catch (e) { }
 
         throw new Error('Could not extract readable text from the uploaded PDF. Please make sure the PDF contains selectable text (not scanned images) and is not password protected.');
     }
@@ -613,10 +613,10 @@ function generateDetailedATSAnalysisFallback(extractedText = '', targetRole = ''
         }
     }
 
-    const matchedTargetSkills = targetBank.filter(ts => 
+    const matchedTargetSkills = targetBank.filter(ts =>
         detectedSkills.some(ds => ds.toLowerCase() === ts.toLowerCase())
     );
-    const missingTargetSkills = targetBank.filter(ts => 
+    const missingTargetSkills = targetBank.filter(ts =>
         !detectedSkills.some(ds => ds.toLowerCase() === ts.toLowerCase())
     );
 
@@ -716,25 +716,25 @@ function generateDetailedATSAnalysisFallback(extractedText = '', targetRole = ''
 
     // 9. Content Suggestions
     const contentSuggestions = {
-        summary: hasSummary 
+        summary: hasSummary
             ? "Refine your summary to clearly state your primary tech stack, years of coding experience, and the specific value you deliver to an engineering team."
             : "Include a 2-3 sentence executive profile at the top highlighting your key technical proficiencies and career objective.",
         skills: "Organize your skills into structured categories: Languages, Frameworks, Databases, and Tools. This ensures ATS algorithms accurately parse each competency.",
         projects: "Structure each project using the STAR method: state the technical problem, list the architecture and technologies used, and describe the measurable outcome.",
-        experience: hasExperience 
+        experience: hasExperience
             ? "Begin every bullet point with strong action verbs (Architected, Engineered, Optimized, Delivered) and follow the XYZ formula (Accomplished X, measured by Y, by doing Z)."
             : "If professional experience is limited, highlight competitive programming, capstone projects, open-source contributions, or university hackathon entries.",
         education: "List degree title, institution name, graduation year, and relevant coursework such as Data Structures, DBMS, and Operating Systems.",
-        certifications: hasCertifications 
+        certifications: hasCertifications
             ? "Ensure certifications include issuing organizations (e.g., AWS, Microsoft, Oracle, Coursera) and completion dates."
             : "Consider obtaining industry-recognized technical certifications (e.g., AWS Cloud Practitioner, Java SE, or Meta Frontend Developer) to reinforce credentials.",
-        achievements: hasAchievements 
+        achievements: hasAchievements
             ? "Keep achievements concise and focused on high-impact honors such as hackathon ranks, coding rankings, or academic awards."
             : "Add a dedicated Achievements section featuring competitive programming milestones (LeetCode, Codeforces, HackerRank), scholarships, or leadership honors."
     };
 
     // 10. Keyword Optimization
-    const keywordOptimization = (missingKeywords.slice(0, 4)).map(kw => 
+    const keywordOptimization = (missingKeywords.slice(0, 4)).map(kw =>
         `${kw} — Highly weighted by recruiter search filters for ${role || 'engineering roles'}. If experienced, integrate into relevant projects or skills.`
     );
     if (keywordOptimization.length === 0) {
@@ -955,8 +955,8 @@ app.post('/api/ats/analyze', upload.single('file'), async (req, res) => {
         }
 
         if (!extractedText || extractedText.length < 40) {
-            return res.status(400).json({ 
-                error: 'Could not extract sufficient text from the document. Please ensure the resume is not scanned or empty.' 
+            return res.status(400).json({
+                error: 'Could not extract sufficient text from the document. Please ensure the resume is not scanned or empty.'
             });
         }
 
@@ -1268,7 +1268,7 @@ app.post('/api/assessments/coding/evaluate', (req, res) => {
         if (question && question.test_cases_json) {
             try {
                 testCases = JSON.parse(question.test_cases_json);
-            } catch (e) {}
+            } catch (e) { }
         }
 
         const evalResult = runCodeSampleCases({
